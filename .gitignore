@@ -1,0 +1,116 @@
+# fMRI Navigation Experiment - Git Ignore File
+
+# Results and data files (keep structure but ignore actual data)
+Results/
+test_results/
+exploration/results/
+PTSOD/Results/
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# MATLAB files
+*.asv
+*.m~
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Log files
+*.log
+
+# Backup files
+*.backup
+*.bak
+
+# Large media files that might be too big for git
+*.mp4
+*.avi
+*.mov
+*.wmv
+
+# Unity build files (if any)
+unity/Builds/
+unity/Temp/
+unity/obj/
+
+# Large data files
+*.mat
+*.csv
+*.xlsx
+*.xls
+
+# Keep important CSV templates and examples
+!*_template.csv
+!*_example.csv
+!Arenas.csv
+!Final_New_Arenas.csv
+!Final111_New_Arenas.csv
+
+# Keep important instruction images
+!exploration/Instructions-he/*.png
+!PTSOD/Instructions_HE/*.png
+!PTSOD/Stimuli/*/memory_screens_HE/*.png
+!PTSOD/Stimuli/*/nomemory_screens_HE/*.png
+
+# Keep sound files
+!sounds/*.wav
+!sounds/*.mp3
+!exploration/sounds/**/*.wav
+!exploration/sounds/**/*.mp3
+
+# Keep arena icons
+!arenas_new_icons/**/*.png
+!arenas_new_icons/**/*.svg
+
+# Keep fixation cross images
+!fixation_cross.png
+!ptsod_fixation_cross.png
+!exploration_fixation_cross.png
+
+# Keep documentation
+!*.md
+!*.pdf
+!*.docx
+!*.rtf
+
+# Keep configuration files
+!requirements.txt
+!*.bat
+!*.py
+!*.m
+
+# Keep Unity project files (but not builds)
+unity/Assets/
+unity/ProjectSettings/
+unity/Packages/
+!unity/Builds/
+!unity/Temp/
+!unity/obj/

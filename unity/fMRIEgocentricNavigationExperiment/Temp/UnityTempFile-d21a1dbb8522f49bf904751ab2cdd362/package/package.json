@@ -1,0 +1,24 @@
+{
+  "name": "com.unity.template.3d",
+  "displayName": "3D",
+  "version": "8.1.0",
+  "type": "template",
+  "host": "hub",
+  "unity": "2021.2",
+  "description": "This is an empty 3D project that uses Unity's built-in renderer.",
+  "dependencies": {
+    "com.unity.collab-proxy": "1.13.5",
+    "com.unity.feature.development": "1.0.1",
+    "com.unity.textmeshpro": "3.0.6",
+    "com.unity.timeline": "1.6.2",
+    "com.unity.ugui": "1.0.0"
+  },
+  "upmCi": {
+    "footprint": "734a0615575628cd4372e24b57331c7a92e2b6ef"
+  },
+  "repository": {
+    "url": "https://github.cds.internal.unity3d.com/unity/com.unity.template-3d.git",
+    "type": "git",
+    "revision": "51787c63f6cf4c1e74aa66658c266ec64abe4086"
+  }
+}

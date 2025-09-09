@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spatial Navigation Experiment</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="experiment-container">
+        <div id="prolific-id-container">
+            <label for="prolific-id">Enter player initials:</label>
+            <input type="text" id="prolific-id" placeholder="Enter initials" required>
+            <button id="start-button">Start Experiment</button>
+        </div>
+        
+        <div id="instruction-container" style="display: none;">
+            <img id="instruction-image" src="" alt="Instruction">
+            <div class="instruction-text">Press Enter to continue</div>
+        </div>
+
+        <canvas id="game-canvas" style="display: none;"></canvas>
+        
+        <div id="debug-info" style="display: none;">
+            <div>Position: <span id="position"></span></div>
+            <div>Angle: <span id="angle"></span></div>
+            <div>Targets Collected: <span id="targets"></span></div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/navigation.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html> 
