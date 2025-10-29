@@ -2,16 +2,15 @@
 # -*- coding: utf-8 -*-
 """
 Full Arena Run Wrapper Script
-Runs 6 snake trials and 6 multi_arena trials (intertwined) as a single process
+Runs snake and multi_arena trials (intertwined) as a single process
 to eliminate timing gaps between trials.
 
-Terminology:
-- This is a SINGLE RUN containing 12 trials (6 snake + 6 multi_arena)
-- Each trial is numbered 1-12 within this run
-- Run number 2 = Full Arena Run (second run in fMRI session)
+Configuration based on run number:
+- Run 1: 4 trials (2 snake + 2 multi_arena) - uses hospital, bookstore
+- Run 2: 4 trials (2 snake + 2 multi_arena) - uses gym, museum
+- Other: 12 trials (6 snake + 6 multi_arena) - uses all 6 arenas
 
 Usage: python full_arena_run.py --participant PARTICIPANT_ID --run RUN_NUMBER
-Note: Run number should be 2 for Full Arena Run.
 """
 
 import subprocess
@@ -34,7 +33,6 @@ from datetime import datetime
 
 # Constants
 TR = 2.01  # TR in seconds
-TOTAL_TRIALS = 12  # 6 snake + 6 multi_arena trials
 
 def get_unique_filename(base_filename, participant_id):
     """Generate a unique filename by adding suffix if file exists."""
@@ -66,11 +64,11 @@ def get_unique_filename(base_filename, participant_id):
             return new_filename
         counter += 1
 
-def run_trial(trial_number, trial_type, participant_id, run_number, arena_name=None, screen_number=None):
+def run_trial(trial_number, trial_type, participant_id, run_number, total_trials, arena_name=None, screen_number=None):
     """Run a single trial and return timing information."""
     
     print(f"\n{'='*60}")
-    print(f"TRIAL {trial_number}/{TOTAL_TRIALS}: {trial_type.upper()}")
+    print(f"TRIAL {trial_number}/{total_trials}: {trial_type.upper()}")
     print(f"{'='*60}")
     
     trial_start_time = time.time()
@@ -91,7 +89,7 @@ def run_trial(trial_number, trial_type, participant_id, run_number, arena_name=N
         "--participant", participant_id,
         "--run", str(run_number),
         "--trial", str(trial_number),
-        "--total-trials", str(TOTAL_TRIALS)
+        "--total-trials", str(total_trials)
     ]
 
     # Add screen argument if provided
@@ -148,13 +146,54 @@ def run_trial(trial_number, trial_type, participant_id, run_number, arena_name=N
         }
 
 def run_full_arena_run(participant_id, run_number, screen_number=None):
-    """Run the complete Full Arena Run (6 snake + 6 multi_arena trials)."""
+    """Run the complete Full Arena Run with run-based configuration.
+    
+    Args:
+        participant_id: Participant ID
+        run_number: Run number in fMRI session
+            - Run 2: 4 trials (2 snake + 2 multi_arena) - uses arenas[0:2]
+            - Run 3: 4 trials (2 snake + 2 multi_arena) - uses arenas[2:4]
+            - Other: 12 trials (6 snake + 6 multi_arena) - uses all 6 arenas
+        screen_number: Optional screen number
+    """
+    
+    # Configure based on run number
+    fmri_arenas = ["hospital", "bookstore", "gym", "museum", "airport", "market"]
+    
+    if run_number == 1:
+        # Run 1: 4 trials (2 snake + 2 multi_arena)
+        TOTAL_TRIALS = 4
+        num_multi_arena = 2
+        arena_start_idx = 0
+        arena_end_idx = 2
+        trial_sequence = ["snake", "multi_arena", "snake", "multi_arena"]
+    elif run_number == 2:
+        # Run 2: 4 trials (2 snake + 2 multi_arena)
+        TOTAL_TRIALS = 4
+        num_multi_arena = 2
+        arena_start_idx = 2
+        arena_end_idx = 4
+        trial_sequence = ["snake", "multi_arena", "snake", "multi_arena"]
+    else:
+        # Default: 12 trials (6 snake + 6 multi_arena) - full run
+        TOTAL_TRIALS = 12
+        num_multi_arena = 6
+        arena_start_idx = 0
+        arena_end_idx = 6
+        trial_sequence = [
+            "snake", "multi_arena", "snake", "multi_arena", "snake", "multi_arena",
+            "snake", "multi_arena", "snake", "multi_arena", "snake", "multi_arena"
+        ]
+    
+    # Get arenas for this run
+    run_arenas = fmri_arenas[arena_start_idx:arena_end_idx]
     
     print(f"\n{'='*80}")
     print(f"FULL ARENA RUN STARTING")
     print(f"Participant: {participant_id}")
     print(f"Run: {run_number}")
-    print(f"Total Trials: {TOTAL_TRIALS}")
+    print(f"Total Trials: {TOTAL_TRIALS} ({num_multi_arena} snake + {num_multi_arena} multi_arena)")
+    print(f"Arenas for this run: {', '.join(run_arenas)}")
     print(f"TR: {TR} seconds")
     if screen_number is not None:
         print(f"Display will be on screen: {screen_number}")
@@ -163,15 +202,7 @@ def run_full_arena_run(participant_id, run_number, screen_number=None):
     
     block_start_time = time.time()
     
-    # Define trial sequence (6 snake + 6 multi_arena, intertwined)
-    trial_sequence = [
-        "snake", "multi_arena", "snake", "multi_arena", "snake", "multi_arena",
-        "snake", "multi_arena", "snake", "multi_arena", "snake", "multi_arena"
-    ]
-    
     trial_results = []
-    # Predefine the six fMRI arenas to use across the six multi_arena trials
-    fmri_arenas = ["hospital", "bookstore", "gym", "museum", "airport", "market"]
     next_multi_idx = 0
 
     
@@ -179,15 +210,15 @@ def run_full_arena_run(participant_id, run_number, screen_number=None):
     for trial_number, trial_type in enumerate(trial_sequence, 1):
         arena_for_trial = None
         if trial_type == "multi_arena":
-            # Cycle through the predefined fMRI arenas
-            if next_multi_idx < len(fmri_arenas):
-                arena_for_trial = fmri_arenas[next_multi_idx]
+            # Use arenas assigned to this run
+            if next_multi_idx < len(run_arenas):
+                arena_for_trial = run_arenas[next_multi_idx]
             else:
                 # Safety fallback: wrap around if somehow exceeded
-                arena_for_trial = fmri_arenas[next_multi_idx % len(fmri_arenas)]
+                arena_for_trial = run_arenas[next_multi_idx % len(run_arenas)]
             next_multi_idx += 1
 
-        result = run_trial(trial_number, trial_type, participant_id, run_number, arena_for_trial, screen_number)
+        result = run_trial(trial_number, trial_type, participant_id, run_number, TOTAL_TRIALS, arena_for_trial, screen_number)
         trial_results.append(result)
         
 
@@ -244,7 +275,7 @@ def run_full_arena_run(participant_id, run_number, screen_number=None):
     print(f"Average trial duration in TRs: {(total_trial_time/TOTAL_TRIALS)/TR:.2f} TRs")
     
     # Save detailed timing log with unique filename
-    base_log_filename = f"{participant_id}_full_arena_run_timing.csv"
+    base_log_filename = f"{participant_id}_full_arena_run_{run_number}_timing.csv"
     log_filename = get_unique_filename(base_log_filename, participant_id)
     save_timing_log(log_filename, block_start_time, trial_results)
     print(f"\nDetailed timing log saved to: {log_filename}")
