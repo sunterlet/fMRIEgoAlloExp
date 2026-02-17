@@ -1,20 +1,20 @@
-function full_arena_run(participant_id, screen_number)
-%FULL_ARENA_RUN Run the Full Arena Run (6 snake + 6 multi_arena trials)
+function full_arena_run(participant_id, run_number, screen_number)
+%FULL_ARENA_RUN Run the Full Arena Run with run-based configuration
 %
-%   full_arena_run(participant_id, screen_number) - Run Full Arena Run
+%   full_arena_run(participant_id, run_number, screen_number) - Run Full Arena Run
 %
 %   Parameters:
 %       participant_id: Participant ID (e.g., 'TS263')
+%       run_number: Run number in fMRI session
+%           - Run 1: 4 trials (2 snake + 2 multi_arena) - uses hospital, bookstore
+%           - Run 2: 4 trials (2 snake + 2 multi_arena) - uses gym, museum
+%           - Other: 12 trials (6 snake + 6 multi_arena) - uses all 6 arenas
 %       screen_number: Screen number to display on (optional, default: None)
 %
-%   Terminology:
-%   - This is a SINGLE RUN containing 12 trials (6 snake + 6 multi_arena)
-%   - Each trial is numbered 1-12 within this run
-%   - Run number 2 = Full Arena Run (second run in fMRI session)
-%
 %   Examples:
-%       full_arena_run('TS263')           % Full Arena Run (default screen)
-%       full_arena_run('TS263', 0)       % Full Arena Run on screen 0
+%       full_arena_run('TS263', 1)           % Full Arena Run 1 (default screen)
+%       full_arena_run('TS263', 1, 0)       % Full Arena Run 1 on screen 0
+%       full_arena_run('TS263', 2, 0)       % Full Arena Run 2 on screen 0
 
     % Get the current directory (should be the fMRI experiment directory)
     current_dir = pwd;
@@ -93,22 +93,37 @@ function full_arena_run(participant_id, screen_number)
             participant_id = 'TEST';
         end
         if nargin < 2
+            run_number = 1;  % Default to run 1
+        end
+        if nargin < 3
             screen_number = [];
         end
         
         fprintf('Running Full Arena Run for participant: %s\n', participant_id);
+        fprintf('Run number: %d\n', run_number);
         if ~isempty(screen_number)
             fprintf('Display will be on screen: %d\n', screen_number);
         else
             fprintf('Display will use default screen behavior\n');
         end
-        fprintf('This will run 6 snake trials and 6 multi_arena trials (intertwined)\n');
+        
+        % Determine configuration based on run number
+        if run_number == 1
+            fprintf('This will run 2 snake trials and 2 multi_arena trials (intertwined)\n');
+            fprintf('Arenas: hospital, bookstore\n');
+        elseif run_number == 2
+            fprintf('This will run 2 snake trials and 2 multi_arena trials (intertwined)\n');
+            fprintf('Arenas: gym, museum\n');
+        else
+            fprintf('This will run 6 snake trials and 6 multi_arena trials (intertwined)\n');
+            fprintf('Arenas: hospital, bookstore, gym, museum, airport, market\n');
+        end
         
         % Build command with optional screen parameter
         if ~isempty(screen_number)
-            cmd = sprintf('%s full_arena_run.py --participant %s --run 2 --screen %d', python_cmd, participant_id, screen_number);
+            cmd = sprintf('%s full_arena_run.py --participant %s --run %d --screen %d', python_cmd, participant_id, run_number, screen_number);
         else
-            cmd = sprintf('%s full_arena_run.py --participant %s --run 2', python_cmd, participant_id);
+            cmd = sprintf('%s full_arena_run.py --participant %s --run %d', python_cmd, participant_id, run_number);
         end
         [status, result] = system(cmd);
         

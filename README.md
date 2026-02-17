@@ -10,6 +10,13 @@ This experiment consists of multiple components:
 - **One Target Run**: 6 snake trials + 6 one-target arena trials
 - **Full Arena Run**: 6 snake trials + 6 multi-arena trials
 
+## Organizing and syncing (Mac ↔ PC)
+
+- **[EXPERIMENT_REQUIREMENTS.md](EXPERIMENT_REQUIREMENTS.md)** — What the experiment actually uses: practice (Mac) and scanner session (PC), and all dependencies.
+- **[FOLDER_ORGANIZATION_PLAN.md](FOLDER_ORGANIZATION_PLAN.md)** — What to keep vs archive, clean folder structure, Mac vs PC notes.
+- **[GIT_WORKFLOW.md](GIT_WORKFLOW.md)** — Step-by-step: push from Mac, pull on PC (LaCie), and how to handle scanner-only scripts.
+- **[ORGANIZATION_AND_GIT_GUIDE.md](ORGANIZATION_AND_GIT_GUIDE.md)** — One repo, one source of truth, and how to get there.
+
 ## Quick Start
 
 ### Prerequisites

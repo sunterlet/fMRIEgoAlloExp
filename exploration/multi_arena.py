@@ -83,8 +83,8 @@ EXPERIMENT_START_TIME = time.time()
 ARENA_DIAMETER = 3.3
 ARENA_RADIUS = ARENA_DIAMETER / 2.0
 BORDER_THRESHOLD = 0.1
-TARGET_RADIUS = 0.15
-ANNOTATION_RADIUS = 0.08  # Slightly smaller radius for annotations
+TARGET_RADIUS = 0.25
+ANNOTATION_RADIUS = 0.1  # Slightly smaller radius for annotations
 
 # Debug mode
 SHOW_TARGETS_DEBUG = False
@@ -163,14 +163,17 @@ except Exception as e:
 
 # Create display based on screen parameter
 if screen_number is not None:
-    # Use specified screen number
     try:
-        # Set the display environment variable for pygame
-        os.environ['DISPLAY'] = f':0.{screen_number}'
-        print(f"Setting display to screen {screen_number}")
-        
-        # Create fullscreen display on specified screen
-        screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        display_count = pygame.display.get_num_displays()
+        print(f"Detected {display_count} display(s)")
+        if screen_number < 0 or screen_number >= display_count:
+            raise ValueError(f"Screen {screen_number} is out of range (0-{display_count-1})")
+
+        os.environ['SDL_VIDEO_FULLSCREEN_DISPLAY'] = str(screen_number)
+        os.environ['SDL_VIDEO_CENTERED'] = "0"
+        print(f"Setting fullscreen display to screen {screen_number}")
+
+        screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN, display=screen_number)
         screen_info = pygame.display.Info()
         screen_width = screen_info.current_w
         screen_height = screen_info.current_h
@@ -182,7 +185,6 @@ if screen_number is not None:
         screen_width = screen_info.current_w
         screen_height = screen_info.current_h
 else:
-    # Use default fullscreen behavior
     try:
         screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         screen_info = pygame.display.Info()
@@ -272,25 +274,13 @@ def load_arena_data():
     arenas = {}
     hebrew_names = {}  # Dictionary to store Hebrew names
     hebrew_arena_names = {}  # Dictionary to store Hebrew arena names
-    # Try to load from Final_New_Arenas.csv first, then fall back to original Arenas.csv
-    arena_file = os.path.join(os.path.dirname(__file__), "Final_New_Arenas.csv")
+    # Load from Final111_New_Arenas.csv
+    arena_file = os.path.join(os.path.dirname(__file__), "Final111_New_Arenas.csv")
+    print(f"Using arena file: {arena_file}")
     
     if not os.path.exists(arena_file):
-        # Fall back to original Arenas.csv (correct path name)
-        arena_file = os.path.join(os.path.dirname(__file__), "Arenas.csv")
-        print(f"Using original arena file: {arena_file}")
-    else:
-        print(f"Using new arena file: {arena_file}")
-    
-    if not os.path.exists(arena_file):
-        print(f"Warning: Arena file not found: {arena_file}")
-        # Create a default arena for testing
-        arenas['default'] = {
-            "target1": (1.0, 1.0),
-            "target2": (-1.0, 1.0),
-            "target3": (0.0, -1.0)
-        }
-        return arenas, hebrew_names, hebrew_arena_names
+        print(f"Error: Arena file not found: {arena_file}")
+        sys.exit(1)
     
     with open(arena_file, 'r', encoding='utf-8') as f:
         reader = csv.reader(f)
@@ -859,8 +849,8 @@ def run_arena(arena_name, targets, arena_num, total_arenas, visibility="full", h
     beep_channel = None
     target_audio_channel = None  # Separate channel for target sounds
     global audio_channel  # Use global audio_channel for beep sounds
-    last_encounter_times = {name: 0 for name in targets.keys()}
-    ENCOUNTER_COOLDOWN = 1.0
+    # Track which targets the player is currently inside
+    currently_inside_targets = set()
     continuous_log = []
     discrete_log = []
     distance_moved = 0.0
@@ -1177,11 +1167,14 @@ def run_arena(arena_name, targets, arena_num, total_arenas, visibility="full", h
         if phase == "exploration":
             for target_name, target_pos in targets.items():
                 if distance(player_pos, target_pos) <= TARGET_RADIUS:
-                    # Check if enough time has passed since last encounter
-                    if current_time - last_encounter_times[target_name] >= ENCOUNTER_COOLDOWN:
+                    # Check if this is a new entry (player just entered the target area)
+                    if target_name not in currently_inside_targets:
+                        # Player just entered this target area
+                        currently_inside_targets.add(target_name)
+                        
+                        # Log first encounter only
                         if target_name not in found_targets:
                             found_targets.add(target_name)
-                            # Log first encounter
                             encounter_log = {
                                 "RoundName": arena_name,
                                 "RealTime": datetime.now().strftime('%H:%M:%S.%f')[:-3],
@@ -1196,7 +1189,7 @@ def run_arena(arena_name, targets, arena_num, total_arenas, visibility="full", h
                             continuous_log.append(encounter_log)
                             save_logs([], [encounter_log], player_initials, append=True)
                         
-                        # Play sound for any encounter - use lowercase for case-insensitive matching
+                        # Play sound every time player enters the target area
                         target_name_lower = target_name.lower()
                         if target_name_lower in target_sounds:
                             try:
@@ -1213,7 +1206,10 @@ def run_arena(arena_name, targets, arena_num, total_arenas, visibility="full", h
                                 print(f"Error playing sound for {target_name}: {e}")
                         else:
                             print(f"Warning: No sound found for {target_name} (tried {target_name_lower})")
-                        last_encounter_times[target_name] = current_time
+                else:
+                    # Player is outside this target - mark as not inside anymore
+                    if target_name in currently_inside_targets:
+                        currently_inside_targets.remove(target_name)
         
         # Draw everything
         screen.fill(BACKGROUND_COLOR)

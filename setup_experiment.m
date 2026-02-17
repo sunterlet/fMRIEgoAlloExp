@@ -79,7 +79,7 @@ end
 fprintf('\n=== Checking Required Directories ===\n');
 
 required_dirs = {
-    'exploration', 'PTSOD', 'arenas_new_icons', 'sounds', ...
+    'exploration', 'PTSOD', 'sounds', ...
     'exploration/sounds', 'exploration/Instructions-he', ...
     'PTSOD/Code', 'PTSOD/Instructions_HE', 'PTSOD/Stimuli'
 };
@@ -177,3 +177,7 @@ fprintf('2. If Psychtoolbox is missing, install it from: http://psychtoolbox.org
 fprintf('3. Run the experiment: fmri_session\n\n');
 
 fprintf('For detailed installation instructions, see: README_INSTALLATION.md\n');
+
+
+
+

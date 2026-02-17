@@ -81,9 +81,9 @@ BEEP_SOUND_PATH = os.path.join(SOUNDS_DIR, "beep.wav")
 # ---------------------------
 # Experiment parameters - will be set based on mode
 # ---------------------------
-TRAINING_SESSIONS = 3
-DARK_TRAINING_TRIALS = 2  # Changed from 3 to 2 for practice mode
-TEST_TRIALS = 3  # Changed from 5 to 3 for practice mode
+TRAINING_SESSIONS = 2  # Reduced from 3 to 2 for practice mode
+DARK_TRAINING_TRIALS = 2  # 2 trials for practice mode
+TEST_TRIALS = 2  # Reduced from 3 to 2 for practice mode
 
 # ---------------------------
 # Parse command line arguments
@@ -126,12 +126,44 @@ else:
 ANNOTATION_TRs = 10  # 10 TRs = 20.1 seconds (close to 20 seconds)
 ANNOTATION_DURATION = ANNOTATION_TRs * TR
 
+# Check for individual practice mode (environment variable set by MATLAB)
+INDIVIDUAL_PRACTICE = os.getenv('ONE_TARGET_INDIVIDUAL_PRACTICE', 'false').lower() == 'true'
+INDIVIDUAL_CONDITION = os.getenv('ONE_TARGET_CONDITION', '')
+
 # Adjust parameters based on mode
 if MODE == 'fmri':
     # fMRI mode: only test trials, single run
     TRAINING_SESSIONS = 0
     DARK_TRAINING_TRIALS = 0
     TEST_TRIALS = 1
+    # Use centralized results directory if available, otherwise use local results directory
+    centralized_results_dir = os.getenv('CENTRALIZED_RESULTS_DIR')
+    if centralized_results_dir and os.path.exists(centralized_results_dir):
+        # Create SubID subfolder in centralized directory
+        results_dir = os.path.join(centralized_results_dir, player_initials)
+        print(f"Using centralized results directory: {results_dir}")
+    else:
+        results_dir = os.path.join(os.path.dirname(__file__), "results")
+        print(f"Using local results directory: {results_dir}")
+    discrete_filename = os.path.join(results_dir, f"{player_initials}_OT_ot{current_trial}_discrete.csv")
+    continuous_filename = os.path.join(results_dir, f"{player_initials}_OT_ot{current_trial}_continuous.csv")
+elif INDIVIDUAL_PRACTICE and INDIVIDUAL_CONDITION:
+    # Individual practice mode: only run specified condition
+    if INDIVIDUAL_CONDITION == 'training':
+        TRAINING_SESSIONS = int(os.getenv('ONE_TARGET_NUM_TRIALS', '1'))
+        DARK_TRAINING_TRIALS = 0
+        TEST_TRIALS = 0
+    elif INDIVIDUAL_CONDITION == 'dark_training':
+        TRAINING_SESSIONS = 0
+        DARK_TRAINING_TRIALS = int(os.getenv('ONE_TARGET_NUM_TRIALS', '1'))
+        TEST_TRIALS = 0
+    elif INDIVIDUAL_CONDITION == 'test':
+        TRAINING_SESSIONS = 0
+        DARK_TRAINING_TRIALS = 0
+        TEST_TRIALS = int(os.getenv('ONE_TARGET_NUM_TRIALS', '1'))
+    else:
+        # Invalid condition, use defaults
+        pass
     # Use centralized results directory if available, otherwise use local results directory
     centralized_results_dir = os.getenv('CENTRALIZED_RESULTS_DIR')
     if centralized_results_dir and os.path.exists(centralized_results_dir):
@@ -207,14 +239,17 @@ if not audio_initialized:
 
 # Create display based on screen parameter
 if screen_number is not None:
-    # Use specified screen number
     try:
-        # Set the display environment variable for pygame
-        os.environ['DISPLAY'] = f':0.{screen_number}'
-        print(f"Setting display to screen {screen_number}")
-        
-        # Create fullscreen display on specified screen
-        screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        display_count = pygame.display.get_num_displays()
+        print(f"Detected {display_count} display(s)")
+        if screen_number < 0 or screen_number >= display_count:
+            raise ValueError(f"Screen {screen_number} is out of range (0-{display_count-1})")
+
+        os.environ['SDL_VIDEO_FULLSCREEN_DISPLAY'] = str(screen_number)
+        os.environ['SDL_VIDEO_CENTERED'] = "0"
+        print(f"Setting fullscreen display to screen {screen_number}")
+
+        screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN, display=screen_number)
         screen_info = pygame.display.Info()
         screen_width = screen_info.current_w
         screen_height = screen_info.current_h
@@ -226,7 +261,6 @@ if screen_number is not None:
         screen_width = screen_info.current_w
         screen_height = screen_info.current_h
 else:
-    # Use default fullscreen behavior
     screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
     screen_info = pygame.display.Info()
     screen_width = screen_info.current_w
@@ -1558,10 +1592,14 @@ def run_experiment():
 
     if MODE == 'practice':
         # Practice mode: full sequence outside magnet
-        print("Running practice mode (outside magnet)")
+        if INDIVIDUAL_PRACTICE:
+            print(f"Running individual practice mode: {INDIVIDUAL_CONDITION} condition")
+        else:
+            print("Running practice mode (outside magnet)")
         
-        # 1. Show Training Block instructions
-        show_image(os.path.join(INSTRUCTIONS_DIR, "3.png"))
+        # 1. Show Training Block instructions (skip if individual practice on non-training)
+        if TRAINING_SESSIONS > 0:
+            show_image(os.path.join(INSTRUCTIONS_DIR, "3.png"))
 
         # Training trials
         for i in range(1, TRAINING_SESSIONS + 1):
@@ -1574,8 +1612,9 @@ def run_experiment():
             save_discrete_log(all_discrete_logs, discrete_filename)
             save_continuous_log(all_continuous_logs, continuous_filename)
 
-        # 2. Show Dark Training instructions
-        show_image(os.path.join(INSTRUCTIONS_DIR, "4.png"))
+        # 2. Show Dark Training instructions (skip if no dark training trials)
+        if DARK_TRAINING_TRIALS > 0:
+            show_image(os.path.join(INSTRUCTIONS_DIR, "4.png"))
 
         # Dark training trials
         for i in range(1, DARK_TRAINING_TRIALS + 1):
@@ -1588,8 +1627,9 @@ def run_experiment():
             save_discrete_log(all_discrete_logs, discrete_filename)
             save_continuous_log(all_continuous_logs, continuous_filename)
 
-        # 3. Show Testing Block instructions
-        show_image(os.path.join(INSTRUCTIONS_DIR, "5.png"))
+        # 3. Show Testing Block instructions (skip if no test trials)
+        if TEST_TRIALS > 0:
+            show_image(os.path.join(INSTRUCTIONS_DIR, "5.png"))
 
         # Test trials
         for i in range(1, TEST_TRIALS + 1):
@@ -1602,10 +1642,14 @@ def run_experiment():
             save_discrete_log(all_discrete_logs, discrete_filename)
             save_continuous_log(all_continuous_logs, continuous_filename)
 
-        # Show final instruction image for practice mode
-        show_image(os.path.join(INSTRUCTIONS_DIR, "10.png"))
+        # Show final instruction image for practice mode (skip for individual practice)
+        if not INDIVIDUAL_PRACTICE:
+            show_image(os.path.join(INSTRUCTIONS_DIR, "10.png"))
         
-        print("Practice session complete.")
+        if INDIVIDUAL_PRACTICE:
+            print(f"Individual practice complete: {INDIVIDUAL_CONDITION} condition")
+        else:
+            print("Practice session complete.")
 
     elif MODE == 'fmri':
         # fMRI mode: single test trial inside magnet

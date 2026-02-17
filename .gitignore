@@ -3,6 +3,9 @@
 # Results and data files (keep structure but ignore actual data)
 Results/
 test_results/
+
+# Archived folders (moved out of main tree during organization)
+archive/
 exploration/results/
 PTSOD/Results/
 
@@ -56,11 +59,6 @@ ENV/
 *.mov
 *.wmv
 
-# Unity build files (if any)
-unity/Builds/
-unity/Temp/
-unity/obj/
-
 # Large data files
 *.mat
 *.csv
@@ -106,11 +104,3 @@ unity/obj/
 !*.bat
 !*.py
 !*.m
-
-# Keep Unity project files (but not builds)
-unity/Assets/
-unity/ProjectSettings/
-unity/Packages/
-!unity/Builds/
-!unity/Temp/
-!unity/obj/

@@ -102,7 +102,11 @@ function run_one_target(mode, participant_id, run_number, trial_number, total_tr
             fprintf('Running one_target practice session for participant: %s\n', participant_id);
             
             % Run the practice script
-            cmd = sprintf('%s one_target_out.py %s %s', python_cmd, participant_id, screen_number);
+            if isempty(screen_number)
+                cmd = sprintf('%s one_target_out.py %s', python_cmd, participant_id);
+            else
+                cmd = sprintf('%s one_target_out.py %s %d', python_cmd, participant_id, screen_number);
+            end
             [status, result] = system(cmd);
             
             if status == 0
@@ -132,7 +136,11 @@ function run_one_target(mode, participant_id, run_number, trial_number, total_tr
             fprintf('Running one_target fMRI session for participant: %s, run: %d, trial: %d/%d\n', participant_id, run_number, trial_number, total_trials);
             
             % Run the fMRI script without scanning parameter (handled at MATLAB level)
-            cmd = sprintf('%s one_target_in.py %s %d %d %d %s', python_cmd, participant_id, run_number, trial_number, total_trials, screen_number);
+            if isempty(screen_number)
+                cmd = sprintf('%s one_target_in.py %s %d %d %d', python_cmd, participant_id, run_number, trial_number, total_trials);
+            else
+                cmd = sprintf('%s one_target_in.py %s %d %d %d %d', python_cmd, participant_id, run_number, trial_number, total_trials, screen_number);
+            end
             [status, result] = system(cmd);
             
             if status == 0
