@@ -1,7 +1,7 @@
-function full_arena_run(participant_id, run_number, screen_number, scanning, com, TR)
+function full_arena_run(participant_id, run_number, screen_number, scanning, com, TR, vection)
 %FULL_ARENA_RUN Run the Full Arena Run with run-based configuration
 %
-%   full_arena_run(participant_id, run_number, screen_number, scanning, com, TR) - Run Full Arena Run
+%   full_arena_run(participant_id, run_number, screen_number, scanning, com, TR, vection) - Run Full Arena Run
 %
 %   Parameters:
 %       participant_id: Participant ID (e.g., 'TS263')
@@ -134,8 +134,24 @@ function full_arena_run(participant_id, run_number, screen_number, scanning, com
                 TR = 2.01;
             end
         end
+        if nargin < 7
+            % Try to get vection from base workspace, default false
+            try
+                if evalin('base', 'exist(''vection'', ''var'')')
+                    vection = evalin('base', 'vection');
+                else
+                    vection = false;
+                end
+            catch
+                vection = false;
+            end
+        end
         
-        fprintf('Running Full Arena Run for participant: %s\n', participant_id);
+        vection_suffix = '';
+        if vection
+            vection_suffix = ' (vection - 3D first-person)';
+        end
+        fprintf('Running Full Arena Run for participant: %s%s\n', participant_id, vection_suffix);
         fprintf('Run number: %d\n', run_number);
         if ~isempty(screen_number)
             fprintf('Display will be on screen: %d\n', screen_number);
@@ -161,6 +177,9 @@ function full_arena_run(participant_id, run_number, screen_number, scanning, com
         
         % Build command array for ProcessBuilder
         command = {python_cmd, 'full_arena_run.py', '--participant', participant_id, '--run', num2str(run_number), '--screen', num2str(python_screen)};
+        if vection
+            command{end+1} = '--vection';
+        end
         
         % Add trigger parameters if scanning is enabled
         if scanning

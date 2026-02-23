@@ -9,10 +9,10 @@
     
     %  8 trial PTSOD
     
-    % One target block desing (6 snake 6 one target)
-        % Snake
-        % One target arena
-        % Snake ... 
+    % One target block design (6 snake_vection + 6 one_target_vection, 3D first-person)
+        % Snake vection
+        % One target vection
+        % Snake vection ... 
         
     % Movie 1 - The Shinning
     
@@ -106,13 +106,22 @@ else
     fprintf('⚠ PTSOD Code directory not found at: %s\n', ptsodCodePath);
 end
 
-% Add exploration_trigger directory to path
+% Add exploration_trigger directory to path (run_snake_game for shimming, etc.)
 explorationPath = fullfile(pwd, 'exploration_trigger');
 if exist(explorationPath, 'dir')
     addpath(explorationPath);
-    fprintf('✓ Exploration experiment added to path: %s\n', explorationPath);
+    fprintf('✓ Exploration trigger added to path: %s\n', explorationPath);
 else
-    fprintf('⚠ Exploration experiment directory not found at: %s\n', explorationPath);
+    fprintf('⚠ Exploration trigger directory not found at: %s\n', explorationPath);
+end
+
+% Add exploration_trigger_vection first in path (primary vection tasks - one_target_run, full_arena_run)
+explorationVectionPath = fullfile(pwd, 'exploration_trigger_vection');
+if exist(explorationVectionPath, 'dir')
+    addpath(explorationVectionPath, '-begin');  % Prepend so vection run scripts take precedence
+    fprintf('✓ Exploration vection experiment added to path: %s\n', explorationVectionPath);
+else
+    fprintf('⚠ Exploration vection directory not found at: %s\n', explorationVectionPath);
 end
 
 % Add trigger_manager function to path
@@ -151,10 +160,10 @@ fprintf('Participants will play endless snake game during shimming and setting..
 fprintf('The game will run continuously until manually terminated.\n');
 fprintf('Press ESC key in the game window to exit when shimming is complete.\n\n');
 
-% Run endless snake game for anatomical scan period
+% Run endless snake game during shimming
 try
     % Use the run_snake_game function for consistency
-    run_snake_game('anatomical', SubID, [], [], [], selectedScreen);
+    run_snake_game('shimming', SubID, [], [], [], selectedScreen);
     
     fprintf('✓ snake practice completed successfully!\n');
 catch ME
@@ -196,24 +205,26 @@ catch ME
     fprintf('Error in PTSOD fMRI run 1: %s\n', ME.message);
 end
 
-%% One Target Run Design
+%% One Target Run Design (6 snake_vection + 6 one_target_vection)
 commandwindow
-fprintf('\n=== One Target Run Design ===\n');
+fprintf('\n=== One Target Run Design (Vection - 3D first-person) ===\n');
 fprintf('Note: Trigger waiting is handled by Python scripts for each trial.\n');
-fprintf('Starting One Target Run...\n');
+fprintf('Starting One Target Run (snake_vection + one_target_vection)...\n');
 
-one_target_run(SubID, selectedScreen, scanning, com, TR);
+vection = true;  % Use 3D vection scripts: snake_vection.py, one_target_vection.py
+one_target_run(SubID, selectedScreen, scanning, com, TR, vection);
 
-%% Full Arena Run 1 
+%% Full Arena Run 1 (Vection - 3D first-person: snake_vection + multi_arena_vection)
 commandwindow
-fprintf('\n--- Full Arena Run 1 ---\n');
+fprintf('\n--- Full Arena Run 1 (Vection) ---\n');
 % Arena assignments (for reference - handled internally by the wrapper)
 practice_arenas = {'garden', 'beach', 'village', 'ranch', 'zoo', 'school'};
 fmri_arenas = {'hospital', 'library', 'gym', 'museum', 'airport', 'market'};
 fprintf('Note: Trigger waiting is handled by Python scripts for each trial.\n');
-fprintf('Starting Full Arena Run 1...\n');
+fprintf('Starting Full Arena Run 1 (snake_vection + multi_arena_vection)...\n');
 
-full_arena_run(SubID, 1, selectedScreen, scanning, com, TR);
+vection = true;  % Use 3D vection scripts: snake_vection.py, multi_arena_vection.py
+full_arena_run(SubID, 1, selectedScreen, scanning, com, TR, vection);
 
 %% Movie 1 - The Shining
 commandwindow
@@ -230,13 +241,14 @@ catch ME
     fprintf('Error playing Movie 1: %s\n', ME.message);
 end
 
-%% Full Arena Run 2
+%% Full Arena Run 2 (Vection - 3D first-person: snake_vection + multi_arena_vection)
 commandwindow
-fprintf('\n--- Full Arena Run 2 ---\n');
+fprintf('\n--- Full Arena Run 2 (Vection) ---\n');
 fprintf('Note: Trigger waiting is handled by Python scripts for each trial.\n');
-fprintf('Starting Full Arena Run 2...\n');
+fprintf('Starting Full Arena Run 2 (snake_vection + multi_arena_vection)...\n');
 
-full_arena_run(SubID, 2, selectedScreen, scanning, com, TR);
+vection = true;  % Use 3D vection scripts: snake_vection.py, multi_arena_vection.py
+full_arena_run(SubID, 2, selectedScreen, scanning, com, TR, vection);
 
 %% PTSOD fMRI Run 2
 commandwindow

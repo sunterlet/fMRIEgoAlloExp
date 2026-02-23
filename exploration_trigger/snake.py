@@ -62,8 +62,8 @@ PRACTICE_ROTATE_SPEED = 70.0        # degrees per second for practice game
 # Parse command line arguments
 # ---------------------------
 parser = argparse.ArgumentParser(description='Snake Practice Game')
-parser.add_argument('mode', choices=['practice', 'fmri', 'anatomical'], 
-                   help='Run mode: practice (outside magnet), fmri (inside magnet), or anatomical (during anatomical scan)')
+parser.add_argument('mode', choices=['practice', 'fmri', 'shimming'], 
+                   help='Run mode: practice (outside magnet), fmri (inside magnet), or shimming (endless practice during shimming)')
 parser.add_argument('--participant', '-p', default='TEST', 
                    help='Participant initials (default: TEST)')
 parser.add_argument('--run', '-r', type=int, default=1,
@@ -141,10 +141,10 @@ if MODE == 'fmri':
     # Use current_trial (overall run position) for filenames to match participant's view (e.g., snake1, OT2, snake3)
     continuous_filename = os.path.join(results_dir, f"{player_initials}_{run_context}_snake{current_trial}_continuous.csv")
     discrete_filename = os.path.join(results_dir, f"{player_initials}_{run_context}_snake{current_trial}_discrete.csv")
-elif MODE == 'anatomical':
-    # Anatomical mode: use special naming for anatomical scan period
-    continuous_filename = os.path.join(results_dir, f"{player_initials}_anatomical_snake_continuous.csv")
-    discrete_filename = os.path.join(results_dir, f"{player_initials}_anatomical_snake_discrete.csv")
+elif MODE == 'shimming':
+    # Shimming mode: endless practice during scan shimming
+    continuous_filename = os.path.join(results_dir, f"{player_initials}_shimming_snake_continuous.csv")
+    discrete_filename = os.path.join(results_dir, f"{player_initials}_shimming_snake_discrete.csv")
 else:
     continuous_filename = os.path.join(results_dir, f"{player_initials}_snake_practice_continuous_log.csv")
     discrete_filename = os.path.join(results_dir, f"{player_initials}_snake_practice_discrete_log.csv")
@@ -158,8 +158,8 @@ if MODE == 'fmri':
     # Convert to TRs: 10-15 seconds = 5-7.5 TRs, use 5-7 TRs
     TRIAL_TRs = random.randint(5, 7)  # 5-7 TRs = 10.05-14.07 seconds
     TRIAL_DURATION = TRIAL_TRs * TR
-elif MODE == 'anatomical':
-    # Anatomical mode: No time limit (endless gameplay)
+elif MODE == 'shimming':
+    # Shimming mode: No time limit (endless gameplay)
     TRIAL_DURATION = None
 else:
     # Practice mode: Fixed 1 minute duration
@@ -375,7 +375,7 @@ def draw_score_and_timer(score, time_remaining):
     font = pygame.font.SysFont("Arial", 36)
     score_text = font.render(f"Score: {score}", True, CLOCK_COLOR)
     
-    # Format timer as 00:XX (minutes:seconds) or show nothing for anatomical mode
+    # Format timer as 00:XX (minutes:seconds) or show nothing for shimming mode
     if time_remaining is not None:
         minutes = int(time_remaining // 60)
         seconds = int(time_remaining % 60)
@@ -666,8 +666,8 @@ def run_practice_game():
         # Prepare trial info for fixation logging
         if MODE == 'fmri':
             trial_info = str(current_trial)
-        elif MODE == 'anatomical':
-            trial_info = "anatomical"
+        elif MODE == 'shimming':
+            trial_info = "shimming"
         else:
             trial_info = "practice"
         
@@ -709,8 +709,8 @@ def run_practice_game():
         # Continuous logging
         if MODE == 'fmri':
             trial_info = str(current_trial)
-        elif MODE == 'anatomical':
-            trial_info = "anatomical"
+        elif MODE == 'shimming':
+            trial_info = "shimming"
         else:
             trial_info = "practice"
         entry = {
@@ -804,7 +804,7 @@ def run_practice_game():
             event_entry = {
                 "RealTime": datetime.now().strftime('%H:%M:%S.%f')[:-3],
                 "trial_time": round(target_reach_time, 3),
-                "trial": "anatomical" if MODE == 'anatomical' else trial_info,
+                "trial": "shimming" if MODE == 'shimming' else trial_info,
                 "phase": "gameplay",
                 "event": "target_reached",
                 "x": round(player_pos[0], 3),
@@ -882,7 +882,7 @@ def run_practice_game():
         else:
             print(f'Snake trial completed at TR boundary (duration: {TRIAL_DURATION}s)')
         # Thank you screen is handled by the final one_target trial, not snake trials
-    elif MODE == 'anatomical':
+    elif MODE == 'shimming':
         # Anatomical mode: no final instruction needed, game ends when manually terminated
         print('Anatomical scan snake game completed (manually terminated)')
     
@@ -893,7 +893,7 @@ def run_practice_game():
     if TRIAL_DURATION is not None:
         print(f"Snake game complete! Final score: {score} in {TRIAL_DURATION} seconds")
     else:
-        print(f"Snake game complete! Final score: {score} (endless anatomical scan mode)")
+        print(f"Snake game complete! Final score: {score} (endless shimming mode)")
     if MODE == 'fmri':
         print(f"Trial {snake_trial_number}/{snake_total_trials} completed")
     print(f"Data saved to: {continuous_filename}")
@@ -909,7 +909,7 @@ if __name__ == "__main__":
     if TRIAL_DURATION is not None:
         print(f"Trial Duration: {TRIAL_DURATION} seconds")
     else:
-        print("Trial Duration: Endless (anatomical scan mode)")
+        print("Trial Duration: Endless (shimming mode)")
     if MODE == 'fmri':
         print(f"Run: {run_number}")
     

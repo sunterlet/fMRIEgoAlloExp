@@ -2,12 +2,15 @@
 
 # Results and data files (keep structure but ignore actual data)
 Results/
+results/
 test_results/
 
 # Archived folders (moved out of main tree during organization)
 archive/
-exploration/results/
 PTSOD/Results/
+
+# Local-only: exploration stays on dev machine, not used on MRI PC
+exploration/
 
 # Temporary files
 *.tmp
@@ -73,7 +76,6 @@ ENV/
 !Final111_New_Arenas.csv
 
 # Keep important instruction images
-!exploration/Instructions-he/*.png
 !PTSOD/Instructions_HE/*.png
 !PTSOD/Stimuli/*/memory_screens_HE/*.png
 !PTSOD/Stimuli/*/nomemory_screens_HE/*.png
@@ -81,8 +83,6 @@ ENV/
 # Keep sound files
 !sounds/*.wav
 !sounds/*.mp3
-!exploration/sounds/**/*.wav
-!exploration/sounds/**/*.mp3
 
 # Keep arena icons
 !arenas_new_icons/**/*.png

@@ -1,12 +1,13 @@
-function one_target_run(participant_id, screen_number, scanning, com, TR)
+function one_target_run(participant_id, screen_number, scanning, com, TR, vection)
 %ONE_TARGET_RUN Run the One Target Run (6 snake + 6 one_target trials)
 %
-%   one_target_run(participant_id, screen_number, scanning, com, TR) - Run One Target Run
+%   one_target_run(participant_id, screen_number, scanning, com, TR, vection) - Run One Target Run
 %
 %   Parameters:
 %       participant_id: Participant ID (e.g., 'TS263')
 %       screen_number: Screen number to display on (optional, default: None)
 %                      If not provided, will use the screen selected in fMRI_session.m
+%       vection: (optional) If true, use vection scripts (3D first-person: snake_vection, one_target_vection)
 %
 %   Terminology:
 %   - This is a SINGLE RUN containing 12 trials (6 snake + 6 one_target)
@@ -145,8 +146,24 @@ function one_target_run(participant_id, screen_number, scanning, com, TR)
                 TR = 2.01;
             end
         end
+        if nargin < 6
+            % Try to get vection from base workspace, default false
+            try
+                if evalin('base', 'exist(''vection'', ''var'')')
+                    vection = evalin('base', 'vection');
+                else
+                    vection = false;
+                end
+            catch
+                vection = false;
+            end
+        end
         
-        fprintf('Running One Target Run for participant: %s\n', participant_id);
+        vection_suffix = '';
+        if vection
+            vection_suffix = ' (vection - 3D)';
+        end
+        fprintf('Running One Target Run for participant: %s%s\n', participant_id, vection_suffix);
         if ~isempty(screen_number)
             fprintf('Display will be on screen: %d\n', screen_number);
         else
@@ -179,6 +196,9 @@ function one_target_run(participant_id, screen_number, scanning, com, TR)
         
         % Build command array for ProcessBuilder
         command = {python_cmd, 'one_target_run.py', '--participant', participant_id, '--run', '1', '--screen', num2str(python_screen)};
+        if vection
+            command{end+1} = '--vection';
+        end
         
         % Add trigger parameters if scanning is enabled
         if scanning

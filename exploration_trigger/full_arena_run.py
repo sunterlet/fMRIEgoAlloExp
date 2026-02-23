@@ -83,20 +83,20 @@ def get_unique_filename(base_filename, participant_id):
             return new_filename
         counter += 1
 
-def run_trial(trial_number, trial_type, participant_id, run_number, total_trials, arena_name=None, screen_number=None, multi_arena_number=None, total_multi_arenas=None, snake_trial_number=None, scanning=False, com_port='com4', tr=2.01):
+def run_trial(trial_number, trial_type, participant_id, run_number, total_trials, arena_name=None, screen_number=None, multi_arena_number=None, total_multi_arenas=None, snake_trial_number=None, scanning=False, com_port='com4', tr=2.01, vection=False):
     """Run a single trial and return timing information."""
     
     print(f"\n{'='*60}")
-    print(f"TRIAL {trial_number}/{total_trials}: {trial_type.upper()}")
+    print(f"TRIAL {trial_number}/{total_trials}: {trial_type.upper()}{' (vection)' if vection else ''}")
     print(f"{'='*60}")
     
     trial_start_time = time.time()
     
     # Determine which script to run
     if trial_type == "snake":
-        script_name = "snake.py"
+        script_name = os.path.join("vection_experiment", "snake_vection.py") if vection else "snake.py"
     elif trial_type == "multi_arena":
-        script_name = "multi_arena.py"
+        script_name = os.path.join("vection_experiment", "multi_arena_vection.py") if vection else "multi_arena.py"
     else:
         raise ValueError(f"Unknown trial type: {trial_type}")
     
@@ -178,7 +178,7 @@ def run_trial(trial_number, trial_type, participant_id, run_number, total_trials
             'error': str(e)
         }
 
-def run_full_arena_run(participant_id, run_number, screen_number=None, scanning=False, com_port='com4', tr=2.01):
+def run_full_arena_run(participant_id, run_number, screen_number=None, scanning=False, com_port='com4', tr=2.01, vection=False):
     """Run the complete Full Arena Run with run-based configuration.
     
     Args:
@@ -232,6 +232,7 @@ def run_full_arena_run(participant_id, run_number, screen_number=None, scanning=
     print(f"Arenas for this run: {', '.join(run_arenas)}")
     print(f"TR: {tr} seconds")
     print(f"Scanning: {scanning}")
+    print(f"Vection: {vection}")
     if scanning:
         print(f"COM Port: {com_port}")
     if screen_number is not None:
@@ -268,7 +269,7 @@ def run_full_arena_run(participant_id, run_number, screen_number=None, scanning=
             snake_trial_counter += 1
             current_snake_trial_number = snake_trial_counter
 
-        result = run_trial(trial_number, trial_type, participant_id, run_number, TOTAL_TRIALS, arena_for_trial, screen_number, current_multi_arena_number, num_multi_arena, current_snake_trial_number, scanning, com_port, tr)
+        result = run_trial(trial_number, trial_type, participant_id, run_number, TOTAL_TRIALS, arena_for_trial, screen_number, current_multi_arena_number, num_multi_arena, current_snake_trial_number, scanning, com_port, tr, vection)
         trial_results.append(result)
 
         # Abort immediately if a trial failed (e.g., trigger timeout)
@@ -483,6 +484,8 @@ def main():
                        help='Serial port for trigger (default: com4)')
     parser.add_argument('--tr', type=float, default=2.01,
                        help='TR in seconds (default: 2.01)')
+    parser.add_argument('--vection', action='store_true',
+                       help='Use vection scripts (3D first-person: snake_vection, multi_arena_vection)')
     
     args = parser.parse_args()
     
@@ -491,7 +494,7 @@ def main():
     os.chdir(script_dir)
     
     # Run the block
-    run_full_arena_run(args.participant, args.run, args.screen, args.scanning, args.com, args.tr)
+    run_full_arena_run(args.participant, args.run, args.screen, args.scanning, args.com, args.tr, args.vection)
 
 if __name__ == "__main__":
     main() 

@@ -13,7 +13,7 @@ Two main tasks, in order.
 - Check whether **fMRI/practice_session.m** can run using scripts from **Sun/exploration_trigger/** instead of **fMRI/exploration/**.
   - Currently: `practice_session.m` does `addpath(fullfile(pwd, 'exploration'))` and calls `run_snake_game`, etc. Those MATLAB wrappers live in **exploration** on Mac (or would need to come from exploration_trigger).
   - To test: point practice to **exploration_trigger** (e.g. addpath exploration_trigger, and ensure the same entry points exist there: `run_snake_game`, and any one_target/full_arena wrappers if practice uses them).
-- Ensure the **anatomical snake** call in **Sun/fmri_session.m** runs the snake from **Sun/exploration_trigger/** (not exploration).
+- Ensure the **shimming snake** call in **Sun/fmri_session.m** runs the snake from **Sun/exploration_trigger/** (not exploration).
   - Currently: **Sun/exploration_trigger/run_snake_game.m** does `exploration_dir = fullfile(current_dir, 'exploration')`, then `cd(exploration_dir)` and runs `snake.py` from there. So the Python snake is still in **exploration**.
   - Change needed: in **run_snake_game.m**, use **exploration_trigger** as the working directory and run **exploration_trigger/snake.py** (so no dependency on exploration/).
 
@@ -43,6 +43,6 @@ So: merge the vection/3D first-person rendering and arena logic from **vection_e
 | Step | What | Outcome |
 |------|------|--------|
 | 1.1 | Behavioral PC: practice_session.m with Sun/exploration_trigger | One folder for practice + scanner |
-| 1.2 | Sun/fmri_session anatomical snake uses Sun/exploration_trigger/snake.py | run_snake_game.m uses exploration_trigger, not exploration |
+| 1.2 | Sun/fmri_session shimming snake uses Sun/exploration_trigger/snake.py | run_snake_game.m uses exploration_trigger, not exploration |
 | 1.3 | If 1.1 & 1.2 OK | Delete **exploration** directory |
 | 2   | Port vection 3D first-person to exploration_trigger (snake, one_target, multi_arena) | New paradigm in scanner-ready scripts with trigger handling |

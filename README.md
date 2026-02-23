@@ -5,7 +5,7 @@ A comprehensive fMRI experiment system for studying egocentric and allocentric n
 ## Overview
 
 This experiment consists of multiple components:
-- **Anatomical Scan**: Endless snake game during anatomical scanning
+- **Shimming**: Endless snake game during scan shimming
 - **PTSOD Tasks**: Two runs of the PTSOD (Pointing to Self-Other Direction) task
 - **One Target Run**: 6 snake trials + 6 one-target arena trials
 - **Full Arena Run**: 6 snake trials + 6 multi-arena trials
@@ -137,7 +137,7 @@ SubID = 'test';     % Change to actual participant ID
 ## Experiment Phases
 
 ### 1. Anatomical Scan Snake Practice
-- Endless snake game during anatomical scanning
+- Endless snake game during scan shimming
 - Press ESC to exit when scan is complete
 
 ### 2. PTSOD fMRI Run 1
@@ -165,8 +165,8 @@ All data is saved in the `Results/` directory with the following structure:
 ```
 Results/
 └── [SubID]/
-    ├── [SubID]_anatomical_snake_continuous.csv
-    ├── [SubID]_anatomical_snake_discrete.csv
+    ├── [SubID]_shimming_snake_continuous.csv
+    ├── [SubID]_shimming_snake_discrete.csv
     ├── [SubID]_OT_ot_continuous.csv
     ├── [SubID]_OT_ot_discrete.csv
     ├── [SubID]_OT_snake_continuous.csv

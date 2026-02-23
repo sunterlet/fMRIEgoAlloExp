@@ -36,7 +36,7 @@ Everything below is required for the in-scanner protocol on the **PC**.
 
 | Call | Source | Notes |
 |------|--------|-------|
-| `run_snake_game('anatomical', ...)` | Wrapper lives in **exploration_trigger**; inside it, `exploration_dir = fullfile(pwd, 'exploration')` and `cd(exploration_dir)` (see **exploration_trigger/run_snake_game.m** around lines 26–35), then runs the Python snake from there. | Scanner needs both **exploration_trigger** (for the .m wrapper) and **exploration** (the folder that gets cd’d into). |
+| `run_snake_game('shimming', ...)` | Wrapper lives in **exploration_trigger**; inside it, `exploration_dir = fullfile(pwd, 'exploration')` and `cd(exploration_dir)` (see **exploration_trigger/run_snake_game.m** around lines 26–35), then runs the Python snake from there. | Scanner needs both **exploration_trigger** (for the .m wrapper) and **exploration** (the folder that gets cd’d into). |
 | `PTSODfunc_SplitRuns_fMRI_New(...)` | `PTSOD/Code` | PTSOD task, run 1 and run 2. |
 | `one_target_run(...)` | `exploration_trigger/one_target_run.m` | Calls Python in **exploration_trigger**. |
 | `full_arena_run(...)` | `exploration_trigger/full_arena_run.m` | Calls Python in **exploration_trigger**. |

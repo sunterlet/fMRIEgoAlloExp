@@ -7,12 +7,12 @@ Derived from what **fmri_session.m** actually calls: `run_snake_game`, `one_targ
 ## KEEP (required for fMRI)
 
 ### MATLAB (called by fmri_session.m)
-- **run_snake_game.m** – anatomical / snake
+- **run_snake_game.m** – shimming / snake
 - **one_target_run.m** – one-target run
 - **full_arena_run.m** – full arena run
 
 ### Python (run by the .m files or by the run scripts)
-- **snake.py** – snake game (anatomical: `snake.py anatomical`; fmri: via snake_in.py; practice: snake_out.py)
+- **snake.py** – snake game (shimming: `snake.py shimming`; fmri: via snake_in.py; practice: snake_out.py)
 - **snake_in.py** – snake trial in fMRI run
 - **snake_out.py** – snake practice
 - **one_target_run.py** – orchestrates one-target run (calls snake.py + one_target.py)

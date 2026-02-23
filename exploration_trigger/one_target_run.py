@@ -92,22 +92,30 @@ def get_unique_filename(base_filename, participant_id):
             return new_filename
         counter += 1
 
-def run_trial(trial_number, trial_type, participant_id, run_number, screen_number=None, snake_trial_number=None, scanning=False, com_port='com4', tr=2.01):
+def run_trial(trial_number, trial_type, participant_id, run_number, screen_number=None, snake_trial_number=None, scanning=False, com_port='com4', tr=2.01, vection=False):
     """Run a single trial and return timing information."""
     
     print(f"\n{'='*60}")
-    print(f"TRIAL {trial_number}/{TOTAL_TRIALS}: {trial_type.upper()}")
+    print(f"TRIAL {trial_number}/{TOTAL_TRIALS}: {trial_type.upper()}{' (vection)' if vection else ''}")
     print(f"{'='*60}")
     
     trial_start_time = time.time()
     
-    # Determine which script to run
-    if trial_type == "snake":
-        script_name = "snake.py"
-    elif trial_type == "one_target":
-        script_name = "one_target.py"
+    # Determine which script to run (vection = 3D first-person in vection_experiment/)
+    if vection:
+        if trial_type == "snake":
+            script_name = os.path.join("vection_experiment", "snake_vection.py")
+        elif trial_type == "one_target":
+            script_name = os.path.join("vection_experiment", "one_target_vection.py")
+        else:
+            raise ValueError(f"Unknown trial type: {trial_type}")
     else:
-        raise ValueError(f"Unknown trial type: {trial_type}")
+        if trial_type == "snake":
+            script_name = "snake.py"
+        elif trial_type == "one_target":
+            script_name = "one_target.py"
+        else:
+            raise ValueError(f"Unknown trial type: {trial_type}")
     
     # Construct command
     # Use unbuffered python so prints flush immediately
@@ -174,16 +182,17 @@ def run_trial(trial_number, trial_type, participant_id, run_number, screen_numbe
             'error': str(e)
         }
 
-def run_one_target_run(participant_id, run_number, screen_number=None, scanning=False, com_port='com4', tr=2.01):
+def run_one_target_run(participant_id, run_number, screen_number=None, scanning=False, com_port='com4', tr=2.01, vection=False):
     """Run the complete One Target Run (6 snake + 6 one_target trials)."""
     
     print(f"\n{'='*80}")
-    print(f"ONE TARGET RUN STARTING")
+    print(f"ONE TARGET RUN STARTING{' (VECTION - 3D first-person)' if vection else ''}")
     print(f"Participant: {participant_id}")
     print(f"Run: {run_number}")
     print(f"Total Trials: {TOTAL_TRIALS}")
     print(f"TR: {tr} seconds")
     print(f"Scanning: {scanning}")
+    print(f"Vection: {vection}")
     if scanning:
         print(f"COM Port: {com_port}")
     print(f"Note: Trial durations are randomized by individual scripts")
@@ -200,7 +209,6 @@ def run_one_target_run(participant_id, run_number, screen_number=None, scanning=
     trial_results = []
     snake_trial_counter = 0  # Track which snake trial we're on (1st, 2nd, 3rd, etc.)
 
-    
     # Run all trials; abort entire run on any trial failure
     for trial_number, trial_type in enumerate(trial_sequence, 1):
         current_snake_trial_number = None
@@ -209,7 +217,7 @@ def run_one_target_run(participant_id, run_number, screen_number=None, scanning=
             snake_trial_counter += 1
             current_snake_trial_number = snake_trial_counter
         
-        result = run_trial(trial_number, trial_type, participant_id, run_number, screen_number, current_snake_trial_number, scanning, com_port, tr)
+        result = run_trial(trial_number, trial_type, participant_id, run_number, screen_number, current_snake_trial_number, scanning, com_port, tr, vection)
         trial_results.append(result)
 
         # Abort immediately if a trial failed (e.g., trigger timeout)
@@ -422,6 +430,8 @@ def main():
                        help='Serial port for trigger (default: com4)')
     parser.add_argument('--tr', type=float, default=2.01,
                        help='TR in seconds (default: 2.01)')
+    parser.add_argument('--vection', action='store_true',
+                       help='Use vection scripts (3D first-person: snake_vection, one_target_vection)')
     
     args = parser.parse_args()
     
@@ -430,7 +440,7 @@ def main():
     os.chdir(script_dir)
     
     # Run the block
-    run_one_target_run(args.participant, args.run, args.screen, args.scanning, args.com, args.tr)
+    run_one_target_run(args.participant, args.run, args.screen, args.scanning, args.com, args.tr, args.vection)
 
 if __name__ == "__main__":
     main() 
