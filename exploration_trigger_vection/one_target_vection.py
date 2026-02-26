@@ -490,6 +490,37 @@ def render_hebrew_text(font, text, color):
     else:
         return font.render(text, True, color)
 
+def draw_one_target_trial_intro(trial_num, total_trials):
+    """Draw trial intro screen: זירת מטרה אחת, זירה X/3. Wait for Enter."""
+    screen.fill(FULLSCREEN_BACKGROUND)
+    game_surface.fill(BACKGROUND_COLOR)
+    font_title = get_hebrew_font(36)
+    title_text = render_hebrew_text(font_title, "זירת מטרה אחת", WHITE)
+    title_rect = title_text.get_rect(center=(WIN_WIDTH // 2, WIN_HEIGHT // 2 - 40))
+    game_surface.blit(title_text, title_rect)
+    font_num = get_hebrew_font(24)
+    # RTL: write "3\1" to display as "1/3"
+    num_text = render_hebrew_text(font_num, f"זירה {total_trials}\\{trial_num}", WHITE)
+    num_rect = num_text.get_rect(center=(WIN_WIDTH // 2, WIN_HEIGHT // 2))
+    game_surface.blit(num_text, num_rect)
+    font_inst = get_hebrew_font(20)
+    inst_text = render_hebrew_text(font_inst, "לחצו RETNE כדי להתחיל", WHITE)
+    inst_rect = inst_text.get_rect(center=(WIN_WIDTH // 2, WIN_HEIGHT // 2 + 60))
+    game_surface.blit(inst_text, inst_rect)
+    screen.blit(game_surface, (offset_x, offset_y))
+    pygame.display.flip()
+    waiting = True
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN and event.key in (pygame.K_1, pygame.K_RETURN):
+                waiting = False
+        clock.tick(60)
+    screen.fill(FULLSCREEN_BACKGROUND)
+    pygame.display.flip()
+
 # ---------------------------
 # Helper drawing functions
 # ---------------------------
@@ -637,7 +668,7 @@ def draw_conditions(target_placement_time, current_trial_time, has_moved_forward
 # ---------------------------
 # Trial function with logging (Experiment)
 # ---------------------------
-def run_trial(is_training, target_sound_param, trial_info, trial_counter):
+def run_trial(is_training, target_sound_param, trial_info, trial_counter, show_minimap_at_start=False):
     global BACKGROUND_COLOR, target_sound
     # Use the global target_sound if parameter is None
     if target_sound_param is None:
@@ -702,8 +733,10 @@ def run_trial(is_training, target_sound_param, trial_info, trial_counter):
     # Track active keys for MRI control box compatibility
     active_keys = set()
     
-    # Debug minimap (B key toggles top-down arena view)
-    show_debug_minimap = args.debug
+    # Debug minimap: practice trial 1 starts with minimap on; else B toggles (or args.debug)
+    show_debug_minimap = show_minimap_at_start or args.debug
+    # Trial 1: target on minimap hidden until user toggles with B; trials 2-3: show target when minimap is on
+    show_target_on_minimap = not show_minimap_at_start
 
     while not trial_done:
         dt = clock.tick(60) / 1000.0
@@ -869,7 +902,10 @@ def run_trial(is_training, target_sound_param, trial_info, trial_counter):
                 if event.key == pygame.K_k:
                     pass
                 elif event.key == pygame.K_b:
-                    show_debug_minimap = not show_debug_minimap
+                    if show_minimap_at_start:
+                        show_target_on_minimap = not show_target_on_minimap
+                    else:
+                        show_debug_minimap = not show_debug_minimap
             if event.type == pygame.KEYUP:
                 if phase == "exploration":
                     if event.key in (pygame.K_7, pygame.K_8):  # Number keys for movement
@@ -1182,7 +1218,7 @@ def run_trial(is_training, target_sound_param, trial_info, trial_counter):
                     if 0 <= mmx < map_sz and 0 <= mmy < map_sz:
                         pygame.draw.circle(layer, DEBUG_MINIMAP_GRID_COLOR, (int(mmx), int(mmy)), 1)
 
-                if target_placed and target_position is not None:
+                if target_placed and target_position is not None and (show_target_on_minimap or not show_minimap_at_start):
                     tmx, tmy = world_to_minimap_arena_fixed(target_position[0], target_position[1], map_sz, map_radius)
                     tr = max(2, int((TARGET_RADIUS / ARENA_RADIUS) * map_radius))
                     if 0 <= tmx < map_sz and 0 <= tmy < map_sz:
@@ -1208,7 +1244,6 @@ def run_trial(is_training, target_sound_param, trial_info, trial_counter):
                     ], 1)
 
                 game_surface.blit(layer, (map_x, map_y))
-                pygame.draw.rect(game_surface, (100, 100, 120), (map_x, map_y, map_sz, map_sz), 1)
 
         elif phase == "annotation":
             # Check if annotation timer has expired
@@ -1595,25 +1630,23 @@ def run_experiment():
     trial_counter = 1
 
     if MODE == 'practice':
-        # Practice mode: test trials only (no training/dark_training)
+        # Practice mode: OT-ins.png once, then trial intro (זירת מטרה אחת, זירה X/3) before each trial
         print("Running practice mode (outside magnet)")
-        
-        # Show instruction before test trials
-        show_image(os.path.join(INSTRUCTIONS_DIR, "5.png"))
+        show_image(os.path.join(INSTRUCTIONS_DIR, "OT-ins.png"))
 
-        # Test trials only
         for i in range(1, total_trials + 1):
+            draw_one_target_trial_intro(i, total_trials)
             trial_info = f"test {i}"
-            discrete_log, continuous_log = run_trial(False, training_target_sound, trial_info, trial_counter)
+            # Trial 1: minimap visible; trials 2-3: minimap hidden (B toggles)
+            show_minimap = (i == 1)
+            discrete_log, continuous_log = run_trial(False, training_target_sound, trial_info, trial_counter, show_minimap_at_start=show_minimap)
             all_discrete_logs.append(discrete_log)
             all_continuous_logs.extend(continuous_log)
             trial_counter += 1
-            # Save after each test trial
             save_discrete_log(all_discrete_logs, discrete_filename)
             save_continuous_log(all_continuous_logs, continuous_filename)
 
-        # Show final instruction image for practice mode
-        show_image(os.path.join(INSTRUCTIONS_DIR, "10.png"))
+        show_image(os.path.join(INSTRUCTIONS_DIR, "Done.png"))
         
         print("Practice session complete.")
 
@@ -1694,10 +1727,10 @@ def run_experiment():
                         entry["condition_type"] = "test"
             print(f"Fixation complete.")
             print('Fixation complete. Showing instruction for 1 TR...')
-            show_image(os.path.join(INSTRUCTIONS_DIR, "6.png"), duration=TR)
+            show_image(os.path.join(INSTRUCTIONS_DIR, "OT-screen.png"), duration=TR)
         else:
             print('Skipping fixation (not scanning). Showing instruction...')
-            show_image(os.path.join(INSTRUCTIONS_DIR, "6.png"), duration=1.5)
+            show_image(os.path.join(INSTRUCTIONS_DIR, "OT-screen.png"), duration=1.5)
         
         # Single test trial
         trial_info = f"test_run{run_number}"
@@ -1748,7 +1781,7 @@ def run_experiment():
             
             # Show thank you screen
             print("Showing thank you screen...")
-            show_image(os.path.join(INSTRUCTIONS_DIR, "10.png"))
+            show_image(os.path.join(INSTRUCTIONS_DIR, "Done.png"))
         else:
             print(f"Trial {current_trial}/{total_trials} complete - no final fixation or thank you screen (not final trial).")
         

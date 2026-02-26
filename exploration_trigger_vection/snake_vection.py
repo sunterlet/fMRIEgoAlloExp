@@ -55,7 +55,8 @@ from vection_display_config import (
 )
 
 # Snake-specific
-TARGET_REACH_RADIUS = 0.35
+TARGET_REACH_RADIUS = 0.35   # used for minimap target circle size
+AVATAR_TIP_OFFSET = 0.2     # world-space distance from avatar center to "tip" (forward) for collection
 TARGET_MIN_DISTANCE = 1.2
 MOVE_SPEED = 2.0
 TURN_SPEED = 1.2
@@ -73,7 +74,7 @@ parser.add_argument('--run', '-r', type=int, default=1, help='Run number for fMR
 parser.add_argument('--trial', '-t', type=int, default=1, help='Current trial number')
 parser.add_argument('--total-trials', '-tt', type=int, default=1, help='Total trials')
 parser.add_argument('--screen', '-s', type=int, default=None, help='Screen number')
-parser.add_argument('--fa-run', '-far', type=int, default=None, help='Full arena run identifier for logging')
+parser.add_argument('--mt-run', '-mtr', type=int, default=None, help='Multi target run identifier for logging')
 parser.add_argument('--snake-trial', '-st', type=int, default=None, help='Snake-specific trial number for display')
 parser.add_argument('--scanning', action='store_true', help='Enable trigger functionality for fMRI scanning')
 parser.add_argument('--com', type=str, default='com4', help='Serial port for trigger')
@@ -87,7 +88,7 @@ run_number = args.run
 current_trial = args.trial
 total_trials = args.total_trials
 screen_number = args.screen
-fa_run_number = args.fa_run
+mt_run_number = args.mt_run
 scanning = args.scanning
 com_port = args.com
 TR = args.tr
@@ -103,12 +104,12 @@ else:
 os.makedirs(results_dir, exist_ok=True)
 
 if MODE == 'fmri':
-    if fa_run_number is not None:
-        run_context = f"FA{fa_run_number}V"
+    if mt_run_number is not None:
+        run_context = f"MT{mt_run_number}V"
     elif run_number == 1:
         run_context = "OTV"
     elif run_number == 2:
-        run_context = "FAV"
+        run_context = "MTV"
     else:
         run_context = f"run{run_number}V"
     continuous_filename = os.path.join(results_dir, f"{player_initials}_{run_context}_snake{current_trial}_continuous.csv")
@@ -126,7 +127,7 @@ if MODE == 'fmri':
 elif MODE == 'shimming':
     TRIAL_DURATION = None
 else:
-    TRIAL_DURATION = 60.0
+    TRIAL_DURATION = 90.0  # practice: 90 s
 
 # Sounds: from sound_paths (exploration_trigger) or local fallback
 
@@ -327,7 +328,7 @@ def save_discrete_log(logs, filename):
             print(f"Failed to save backup: {e2}")
 
 
-INSTRUCTIONS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "Instructions-he")
+INSTRUCTIONS_DIR = os.path.join(os.path.dirname(__file__), "Instructions-he")
 
 
 def show_fixation(screen, duration, clock):
@@ -559,12 +560,14 @@ def run_game():
                 })
         else:
             print('Skipping fixation (not scanning).')
-        if not show_instruction(screen, os.path.join(INSTRUCTIONS_DIR, "2.png"), TR, clock):
+        # Show snake instruction screen for 1 TR before trial (same logic as one_target_vection OT-screen.png)
+        if not show_instruction(screen, os.path.join(INSTRUCTIONS_DIR, "snake-screen.png"), TR, clock):
             pygame.quit()
             return
     elif MODE == 'practice':
-        # Practice: show instruction, wait for key
-        inst_path = os.path.join(INSTRUCTIONS_DIR, "1.png")
+        # Practice: show snake instructions (snake-ins.png) before trial
+        snake_instructions_dir = os.path.join(os.path.dirname(__file__), "Instructions-he")
+        inst_path = os.path.join(snake_instructions_dir, "snake-ins.png")
         if os.path.exists(inst_path):
             try:
                 img = pygame.image.load(inst_path)
@@ -601,11 +604,18 @@ def run_game():
     game_start = time.time()
     running = True
     trial_info = str(current_trial) if MODE == 'fmri' else ("shimming" if MODE == 'shimming' else "practice")
-    show_debug_minimap = False
+    # Practice: minimap on for first 30 s then auto-hide; B still toggles. fMRI/shimming: minimap off until B
+    PRACTICE_MINIMAP_DURATION = 30.0
+    show_debug_minimap = (MODE == 'practice')
+    minimap_auto_hidden = False
+    target_was_in_view = False
 
     while running:
         dt = clock.tick(60) / 1000.0
         current_time = time.time() - game_start
+        if MODE == 'practice' and not minimap_auto_hidden and current_time >= PRACTICE_MINIMAP_DURATION:
+            show_debug_minimap = False
+            minimap_auto_hidden = True
 
         # Log (exploration_trigger compatible: trial_type, RoundName, condition_type, visibility)
         entry = {
@@ -680,19 +690,25 @@ def run_game():
         game_surface_main.fill(BACKGROUND_COLOR)
         w, h = GAME_WIDTH, GAME_HEIGHT
 
-        # Gaze indicator rect (bottom center) - also used as collection zone
+        # Spotlight at bottom center = egocentric gaze; avatar position (px, pz) drives both 3D view and minimap
         gi_w = int(w * GAZE_INDICATOR_WIDTH)
         gi_h = int(h * GAZE_INDICATOR_HEIGHT)
         gi_bottom = h - int(h * GAZE_INDICATOR_BOTTOM_MARGIN)
         gaze_rect = pygame.Rect(w // 2 - gi_w // 2, gi_bottom - gi_h, gi_w, gi_h)
 
-        # Target: project for rendering; collect when target enters spotlight area
+        # Target: project for rendering
         tx, tz = target_xz
         t_cx, t_cy, t_cz = world_to_camera(tx, 0.0, tz, px, py, pz, yaw)
         target_pt = project_to_screen(t_cx, t_cy, t_cz, w, h, FOV_DEG, PITCH_DOWN_DEG)
 
-        # Collect when target enters the spotlight (gaze) area on screen
-        if target_pt is not None and gaze_rect.collidepoint(target_pt[0], target_pt[1]):
+        # In view = in front of camera and projection on screen
+        target_in_view = (
+            target_pt is not None
+            and 0 <= target_pt[0] < w
+            and 0 <= target_pt[1] < h
+        )
+        # Collect as soon as target disappears from field of view (was visible, now not)
+        if target_was_in_view and not target_in_view:
             score += 1
             target_locations.append([round(target_xz[0], 3), round(target_xz[1], 3)])
             target_reach_times.append(round(current_time, 3))
@@ -706,10 +722,13 @@ def run_game():
                 "visibility": "none",
             })
             target_xz = random_target_in_arena_min_dist(px, pz)
+            target_was_in_view = False
             if target_sound is not None and target_channel is not None:
                 target_channel.play(target_sound)
             elif target_sound is not None:
                 target_sound.play()
+        else:
+            target_was_in_view = target_in_view
 
         # Floor dots and spotlight visible from trial start at full opacity (no fade in/out)
         dot_color_rgba = (*DOT_COLOR, DOT_ALPHA)
@@ -789,7 +808,6 @@ def run_game():
                 ], 1)
 
             game_surface_main.blit(layer, (map_x, map_y))
-            pygame.draw.rect(game_surface_main, (100, 100, 120), (map_x, map_y, map_sz, map_sz), 1)
 
         # Score & timer
         font = pygame.font.SysFont("Arial", FONT_SIZE_SCORE)
@@ -822,9 +840,10 @@ def run_game():
 
     game_duration = time.time() - game_start
 
-    # Post-game: practice final instruction (fMRI: no end fixation; thank-you handled by one_target)
+    # Post-game: practice final instruction — Done.png (fMRI: no end fixation; thank-you handled by one_target)
     if MODE == 'practice':
-        inst_path = os.path.join(INSTRUCTIONS_DIR, "10.png")
+        snake_instructions_dir = os.path.join(os.path.dirname(__file__), "Instructions-he")
+        inst_path = os.path.join(snake_instructions_dir, "Done.png")
         if os.path.exists(inst_path):
             try:
                 img = pygame.image.load(inst_path)

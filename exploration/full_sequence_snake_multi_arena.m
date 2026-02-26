@@ -41,14 +41,14 @@ for j = 1:length(practice_conditions)
     fprintf('\n--- Practice Condition %d: %s visibility ---\n', j, visibility);
     
     % Run the condition (instructions shown once, then assigned arenas)
-    run_multi_arena('practice', SubID, j, j, length(practice_conditions), visibility);
+    run_multi_target('practice', SubID, j, j, length(practice_conditions), visibility);
 end
 
 % Show thank you screen after all practice trials are complete
 fprintf('\n--- Practice Complete ---\n');
 fprintf('Showing thank you screen...\n');
 % Call the Python script directly for thank you screen
-system(sprintf('python multi_arena.py practice --participant %s --arena thank_you --visibility none --num-trials 1', SubID));
+system(sprintf('python multi_target.py practice --participant %s --arena thank_you --visibility none --num-trials 1', SubID));
 
 % Wait for user confirmation before fMRI sessions
 fprintf('\nPractice sessions completed.\n');
@@ -70,7 +70,7 @@ trial_counter = trial_counter + 1;
 % Block 2: Multi-Arena (Run 1)
 fprintf('\n--- Block 2: Multi-Arena (Run 1) ---\n');
 fprintf('  Running: 1 test trial (no visibility)\n');
-run_multi_arena('fmri', SubID, 1, trial_counter, total_trials, 'none');
+run_multi_target('fmri', SubID, 1, trial_counter, total_trials, 'none');
 trial_counter = trial_counter + 1;
 
 % Block 3: Snake
@@ -81,7 +81,7 @@ trial_counter = trial_counter + 1;
 % Block 4: Multi-Arena (Run 2)
 fprintf('\n--- Block 4: Multi-Arena (Run 2) ---\n');
 fprintf('  Running: 1 test trial (no visibility)\n');
-run_multi_arena('fmri', SubID, 2, trial_counter, total_trials, 'none');
+run_multi_target('fmri', SubID, 2, trial_counter, total_trials, 'none');
 trial_counter = trial_counter + 1;
 
 % Block 5: Snake
@@ -92,7 +92,7 @@ trial_counter = trial_counter + 1;
 % Block 6: Multi-Arena (Run 3)
 fprintf('\n--- Block 6: Multi-Arena (Run 3) ---\n');
 fprintf('  Running: 1 test trial (no visibility)\n');
-run_multi_arena('fmri', SubID, 3, trial_counter, total_trials, 'none');
+run_multi_target('fmri', SubID, 3, trial_counter, total_trials, 'none');
 
 fprintf('\n=== EXPERIMENT COMPLETED ===\n');
 fprintf('All fMRI sessions completed successfully.\n');

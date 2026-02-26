@@ -1,16 +1,16 @@
 function run_snake_game(mode, participant_id, run_number, trial_number, total_trials, screen_number)
-%RUN_SNAKE_GAME Run the snake game in practice, fMRI, or anatomical mode
+%RUN_SNAKE_GAME Run the snake game in practice, fMRI, or shimming mode
 %
 %   run_snake_game('practice', participant_id, screen_number) - Run practice session outside magnet
 %   run_snake_game('fmri', participant_id, run_number, trial_number, total_trials, screen_number) - Run fMRI session inside magnet
-%   run_snake_game('anatomical', participant_id, screen_number) - Run endless game during anatomical scan
+%   run_snake_game('shimming', participant_id, screen_number) - Run endless game during shimming scan
 %
 %   Parameters:
-%       mode: 'practice', 'fmri', or 'anatomical'
+%       mode: 'practice', 'fmri', or 'shimming'
 %       participant_id: Participant initials (e.g., 'TS263')
-%       run_number: Run number for fMRI mode (ignored for practice and anatomical)
-%       trial_number: Current trial number in sequence (ignored for practice and anatomical)
-%       total_trials: Total number of trials in sequence (ignored for practice and anatomical)
+%       run_number: Run number for fMRI mode (ignored for practice and shimming)
+%       trial_number: Current trial number in sequence (ignored for practice and shimming)
+%       total_trials: Total number of trials in sequence (ignored for practice and shimming)
 %       screen_number: Screen number to display on (optional, default: None)
 %
 %   Examples:
@@ -18,8 +18,8 @@ function run_snake_game(mode, participant_id, run_number, trial_number, total_tr
 %       run_snake_game('practice', 'TS263', [], [], [], 0)    % Practice session on screen 0
 %       run_snake_game('fmri', 'TS263', 1, 2, 4)             % fMRI run 1, trial 2 of 4 (default screen)
 %       run_snake_game('fmri', 'TS263', 1, 2, 4, 0)         % fMRI run 1, trial 2 of 4 on screen 0
-%       run_snake_game('anatomical', 'TS263')                 % Anatomical scan mode (default screen)
-%       run_snake_game('anatomical', 'TS263', [], [], [], 0)  % Anatomical scan mode on screen 0
+%       run_snake_game('shimming', 'TS263')                 % Shimming scan mode (default screen)
+%       run_snake_game('shimming', 'TS263', [], [], [], 0)  % Shimming scan mode on screen 0
 
     % Get the current directory (should be the fMRI experiment directory)
     current_dir = pwd;
@@ -144,29 +144,29 @@ function run_snake_game(mode, participant_id, run_number, trial_number, total_tr
                 error('Snake fMRI session failed: %s', result);
             end
             
-        elseif strcmp(mode, 'anatomical')
-            % Run anatomical scan mode (endless gameplay)
+        elseif strcmp(mode, 'shimming')
+            % Run shimming scan mode (endless gameplay)
             if nargin < 2
                 participant_id = 'TEST';
             end
             if nargin < 6
-                screen_number = 0; % Default screen for anatomical
+                screen_number = 0; % Default screen for shimming
             end
             
-            fprintf('Running snake anatomical scan mode for participant: %s, screen: %d\n', participant_id, screen_number);
+            fprintf('Running snake shimming scan mode for participant: %s, screen: %d\n', participant_id, screen_number);
             
-            % Run the anatomical script (endless gameplay)
-            cmd = sprintf('%s snake.py anatomical --participant %s --screen %d', python_cmd, participant_id, screen_number);
+            % Run the shimming script (endless gameplay)
+            cmd = sprintf('%s snake.py shimming --participant %s --screen %d', python_cmd, participant_id, screen_number);
             [status, result] = system(cmd);
             
             if status == 0
-                fprintf('Snake anatomical scan mode completed successfully.\n');
+                fprintf('Snake shimming scan mode completed successfully.\n');
             else
-                error('Snake anatomical scan mode failed: %s', result);
+                error('Snake shimming scan mode failed: %s', result);
             end
             
         else
-            error('Invalid mode. Use ''practice'', ''fmri'', or ''anatomical''');
+            error('Invalid mode. Use ''practice'', ''fmri'', or ''shimming''');
         end
         
     catch ME

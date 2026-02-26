@@ -1,32 +1,32 @@
-function one_target_run(participant_id, screen_number, scanning, com, TR, vection)
-%ONE_TARGET_RUN Run the One Target Run (6 snake + 6 one_target trials)
+function multi_target_run(participant_id, run_number, screen_number, scanning, com, TR, vection)
+%MULTI_TARGET_RUN Run the Multi Target Run with run-based configuration
 %
-%   one_target_run(participant_id, screen_number, scanning, com, TR, vection) - Run One Target Run
+%   multi_target_run(participant_id, run_number, screen_number, scanning, com, TR, vection) - Run Multi Target Run
 %
 %   Parameters:
 %       participant_id: Participant ID (e.g., 'TS263')
+%       run_number: Run number in fMRI session
+%           - Run 1: 4 trials (2 snake + 2 multi_arena) - uses hospital, library
+%           - Run 2: 4 trials (2 snake + 2 multi_arena) - uses gym, museum
+%           - Other: 12 trials (6 snake + 6 multi_arena) - uses all 6 arenas
 %       screen_number: Screen number to display on (optional, default: None)
-%                      If not provided, will use the screen selected in fMRI_session.m
-%       vection: (optional) If true, use vection scripts (3D first-person: snake_vection, one_target_vection)
-%
-%   Terminology:
-%   - This is a SINGLE RUN containing 12 trials (6 snake + 6 one_target)
-%   - Each trial is numbered 1-12 within this run
-%   - Run number 1 = One Target Run (first run in fMRI session)
 %
 %   Examples:
-%       one_target_run('TS263')           % One Target Run (uses selectedScreen from fMRI_session.m)
-%       one_target_run('TS263', 1)       % One Target Run on screen 1
+%       multi_target_run('TS263', 1)           % Multi Target Run 1 (default screen)
+%       multi_target_run('TS263', 1, 0)       % Multi Target Run 1 on screen 0
+%       multi_target_run('TS263', 2, 0)       % Multi Target Run 2 on screen 0
 
-    % Directory containing this .m file (so we run Python from exploration_trigger_vection regardless of pwd)
+    % Get the current directory (should be the fMRI experiment directory)
     current_dir = pwd;
-    exploration_dir = fileparts(which('one_target_run'));
-    if isempty(exploration_dir)
-        exploration_dir = fullfile(pwd, 'exploration_trigger_vection');
-    end
+    
+    % Path to the exploration_trigger experiment directory
+    exploration_dir = fullfile(current_dir, 'exploration_trigger');
+    
     if ~exist(exploration_dir, 'dir')
         error('Exploration experiment directory not found: %s', exploration_dir);
     end
+
+    % Change to the exploration_trigger experiment directory
     cd(exploration_dir);
     
     % Function to find Python executable (Windows-specific)
@@ -93,22 +93,12 @@ function one_target_run(participant_id, screen_number, scanning, com, TR, vectio
             participant_id = 'TEST';
         end
         if nargin < 2
-            % Try to get selectedScreen from the main fMRI session
-            try
-                % Check if selectedScreen variable exists in the base workspace
-                if evalin('base', 'exist(''selectedScreen'', ''var'')')
-                    screen_number = evalin('base', 'selectedScreen');
-                    fprintf('Using selectedScreen from fMRI_session.m: %d\n', screen_number);
-                else
-                    screen_number = [];
-                    fprintf('No selectedScreen found in base workspace, using default screen behavior\n');
-                end
-            catch
-                screen_number = [];
-                fprintf('Could not access selectedScreen from base workspace, using default screen behavior\n');
-            end
+            run_number = 1;  % Default to run 1
         end
         if nargin < 3
+            screen_number = [];
+        end
+        if nargin < 4
             % Try to get scanning from base workspace
             try
                 if evalin('base', 'exist(''scanning'', ''var'')')
@@ -120,7 +110,7 @@ function one_target_run(participant_id, screen_number, scanning, com, TR, vectio
                 scanning = false;
             end
         end
-        if nargin < 4
+        if nargin < 5
             % Try to get com from base workspace
             try
                 if evalin('base', 'exist(''com'', ''var'')')
@@ -132,7 +122,7 @@ function one_target_run(participant_id, screen_number, scanning, com, TR, vectio
                 com = 'com4';
             end
         end
-        if nargin < 5
+        if nargin < 6
             % Try to get TR from base workspace
             try
                 if evalin('base', 'exist(''TR'', ''var'')')
@@ -144,7 +134,7 @@ function one_target_run(participant_id, screen_number, scanning, com, TR, vectio
                 TR = 2.01;
             end
         end
-        if nargin < 6
+        if nargin < 7
             % Try to get vection from base workspace, default false
             try
                 if evalin('base', 'exist(''vection'', ''var'')')
@@ -159,41 +149,34 @@ function one_target_run(participant_id, screen_number, scanning, com, TR, vectio
         
         vection_suffix = '';
         if vection
-            vection_suffix = ' (vection - 3D)';
+            vection_suffix = ' (vection - 3D first-person)';
         end
-        fprintf('Running One Target Run for participant: %s%s\n', participant_id, vection_suffix);
+        fprintf('Running Multi Target Run for participant: %s%s\n', participant_id, vection_suffix);
+        fprintf('Run number: %d\n', run_number);
         if ~isempty(screen_number)
             fprintf('Display will be on screen: %d\n', screen_number);
         else
             fprintf('Display will use default screen behavior\n');
         end
-        fprintf('This will run 6 snake trials and 6 one_target trials (intertwined)\n');
         
-        % Verify screen selection if provided
-        if ~isempty(screen_number)
-            try
-                % Initialize Psychtoolbox to verify screen exists
-                Screen('Preference', 'SkipSyncTests', 1);  % Skip sync tests for faster startup
-                screen_info = Screen('Screens');
-                if screen_number > max(screen_info)
-                    warning('Screen %d not found. Available screens: %s. Using default screen.', ...
-                            screen_number, mat2str(screen_info));
-                    screen_number = [];
-                else
-                    fprintf('✓ Screen %d verified and available\n', screen_number);
-                end
-            catch ME
-                warning('Could not verify screen selection: %s. Using default screen.', ME.message);
-                screen_number = [];
-            end
+        % Determine configuration based on run number
+        if run_number == 1
+            fprintf('This will run 2 snake trials and 2 multi target trials (intertwined)\n');
+            fprintf('Arenas: hospital, library\n');
+        elseif run_number == 2
+            fprintf('This will run 2 snake trials and 2 multi target trials (intertwined)\n');
+            fprintf('Arenas: gym, museum\n');
+        else
+            fprintf('This will run 6 snake trials and 6 multi target trials (intertwined)\n');
+            fprintf('Arenas: hospital, library, gym, museum, airport, market\n');
         end
         
-        % Build command with hardcoded screen parameter
+        % Build command with optional screen parameter
         % Python uses screen 0 (primary monitor)
         python_screen = 0;
         
         % Build command array for ProcessBuilder
-        command = {python_cmd, 'one_target_run.py', '--participant', participant_id, '--run', '1', '--screen', num2str(python_screen)};
+        command = {python_cmd, 'multi_target_run.py', '--participant', participant_id, '--run', num2str(run_number), '--screen', num2str(python_screen)};
         if vection
             command{end+1} = '--vection';
         end
@@ -210,7 +193,7 @@ function one_target_run(participant_id, screen_number, scanning, com, TR, vectio
         % Run the Python script
         cmd_str = sprintf('%s ', command{:});
         fprintf('Executing command: %s\n', cmd_str(1:end-1)); % Remove trailing space
-        fprintf('Starting One Target Run...\n');
+        fprintf('Starting Multi Target Run...\n');
         fprintf('\n--- Python Output (real-time) ---\n');
         
         % Use Java ProcessBuilder for real-time output
@@ -247,10 +230,10 @@ function one_target_run(participant_id, screen_number, scanning, com, TR, vectio
         fprintf('\n--- End of Python Output ---\n');
         
         if exit_code == 0
-            fprintf('✓ One Target Run completed successfully.\n');
+            fprintf('✓ Multi Target Run completed successfully.\n');
         else
-            fprintf('✗ One Target Run failed with exit code: %d\n', exit_code);
-            error('One Target Run failed with exit code: %d', exit_code);
+            fprintf('✗ Multi Target Run failed with exit code: %d\n', exit_code);
+            error('Multi Target Run failed with exit code: %d', exit_code);
         end
         
     catch ME

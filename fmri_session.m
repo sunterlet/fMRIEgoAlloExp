@@ -16,10 +16,10 @@
         
     % Movie 1 - The Shinning
     
-    % Full arena block desing (6 snake 6 full arena)
+    % Multi target block design (2 snake + 2 multi target per run, 2 runs)
 
         % Snake
-        % Full arena
+        % Multi target
         % Snake ... 
 
     %  8 trial PTSOD
@@ -97,8 +97,20 @@ fprintf('TR: %.2f seconds\n', TR);
 %% Add Relevant Paths
 fprintf('\n=== Adding Relevant Paths ===\n');
 
+% Base directory = directory containing this script (so paths work regardless of pwd)
+% If the editor runs from a temp copy (e.g. C:\...\AppData\Local\Temp\Editor_*), use pwd instead
+sessionRoot = fileparts(mfilename('fullpath'));
+if ~exist(fullfile(sessionRoot, 'exploration_trigger_vection'), 'dir')
+    sessionRoot = pwd;
+    fprintf('✓ Session root taken from current directory (script may be running from temp copy): %s\n', sessionRoot);
+end
+
+% Add session root to path (PlayMovie_Scaled etc. stay findable after cd into exploration_trigger_vection)
+addpath(sessionRoot);
+fprintf('✓ Session root added to path: %s\n', sessionRoot);
+
 % Add PTSOD Code directory to path
-ptsodCodePath = fullfile(pwd, 'PTSOD', 'Code');
+ptsodCodePath = fullfile(sessionRoot, 'PTSOD', 'Code');
 if exist(ptsodCodePath, 'dir')
     addpath(ptsodCodePath);
     fprintf('✓ PTSOD Code added to path: %s\n', ptsodCodePath);
@@ -106,44 +118,19 @@ else
     fprintf('⚠ PTSOD Code directory not found at: %s\n', ptsodCodePath);
 end
 
-% Add exploration_trigger directory to path (run_snake_game for shimming, etc.)
-explorationPath = fullfile(pwd, 'exploration_trigger');
-if exist(explorationPath, 'dir')
-    addpath(explorationPath);
-    fprintf('✓ Exploration trigger added to path: %s\n', explorationPath);
-else
-    fprintf('⚠ Exploration trigger directory not found at: %s\n', explorationPath);
-end
-
-% Add exploration_trigger_vection first in path (primary vection tasks - one_target_run, full_arena_run)
-explorationVectionPath = fullfile(pwd, 'exploration_trigger_vection');
+% Add exploration_trigger_vection FIRST (vection one_target_run, multi_target_run take precedence)
+explorationVectionPath = fullfile(sessionRoot, 'exploration_trigger_vection');
 if exist(explorationVectionPath, 'dir')
-    addpath(explorationVectionPath, '-begin');  % Prepend so vection run scripts take precedence
+    addpath(explorationVectionPath, '-begin');
     fprintf('✓ Exploration vection experiment added to path: %s\n', explorationVectionPath);
 else
     fprintf('⚠ Exploration vection directory not found at: %s\n', explorationVectionPath);
 end
 
-% Add trigger_manager function to path
-triggerManagerPath = fullfile(pwd, 'exploration_trigger');
-if exist(triggerManagerPath, 'dir')
-    addpath(triggerManagerPath);
-    fprintf('✓ Trigger manager added to path: %s\n', triggerManagerPath);
-else
-    fprintf('⚠ Trigger manager directory not found at: %s\n', triggerManagerPath);
-end
-
-% Add run_snake_game function to path
-snakeGamePath = fullfile(pwd, 'exploration_trigger');
-if exist(snakeGamePath, 'dir')
-    addpath(snakeGamePath);
-    fprintf('✓ Snake game functions added to path: %s\n', snakeGamePath);
-else
-    fprintf('⚠ Snake game functions directory not found at: %s\n', snakeGamePath);
-end
+% (exploration_trigger not added to path - session uses only exploration_trigger_vection)
 
 % Add sounds directory to path
-soundsPath = fullfile(pwd, 'sounds');
+soundsPath = fullfile(sessionRoot, 'sounds');
 if exist(soundsPath, 'dir')
     addpath(soundsPath);
     fprintf('✓ Sounds directory added to path: %s\n', soundsPath);
@@ -153,17 +140,23 @@ end
 
 fprintf('Path setup completed.\n');
 
-%% Practice snake
+%% Practice snake (vection - same as one-target and multi-target runs)
 commandwindow
 fprintf('\n=== Snake Practice ===\n');
 fprintf('Participants will play endless snake game during shimming and setting...\n');
 fprintf('The game will run continuously until manually terminated.\n');
 fprintf('Press ESC key in the game window to exit when shimming is complete.\n\n');
 
-% Run endless snake game during shimming
+% Ensure vection wrappers from exploration_trigger_vection are used (required if running this section alone)
+if ~exist('sessionRoot', 'var'), sessionRoot = fileparts(mfilename('fullpath')); end
+if ~exist(fullfile(sessionRoot, 'exploration_trigger_vection'), 'dir'), sessionRoot = pwd; end
+addpath(fullfile(sessionRoot, 'exploration_trigger_vection'), '-begin');
+
+% Run endless snake vection game during shimming (exploration_trigger_vection/snake_vection.py)
 try
-    % Use the run_snake_game function for consistency
-    run_snake_game('shimming', SubID, [], [], [], selectedScreen);
+    % Python scripts use screen 0 (primary); match one_target_run / multi_target_run
+    python_screen = 0;
+    run_snake_vection('shimming', SubID, [], [], [], python_screen);
     
     fprintf('✓ snake practice completed successfully!\n');
 catch ME
@@ -211,22 +204,32 @@ fprintf('\n=== One Target Run Design (Vection - 3D first-person) ===\n');
 fprintf('Note: Trigger waiting is handled by Python scripts for each trial.\n');
 fprintf('Starting One Target Run (snake_vection + one_target_vection)...\n');
 
+% Ensure vection wrappers from exploration_trigger_vection are used (required if running this section alone)
+if ~exist('sessionRoot', 'var'), sessionRoot = fileparts(mfilename('fullpath')); end
+if ~exist(fullfile(sessionRoot, 'exploration_trigger_vection'), 'dir'), sessionRoot = pwd; end
+addpath(fullfile(sessionRoot, 'exploration_trigger_vection'), '-begin');
+
 vection = true;  % Use 3D vection scripts: snake_vection.py, one_target_vection.py
 one_target_run(SubID, selectedScreen, scanning, com, TR, vection);
 
-%% Full Arena Run 1 (Vection - 3D first-person: snake_vection + multi_arena_vection)
+%% Multi Target Run 1 (Vection - 3D first-person: snake_vection + multi_target_vection)
 commandwindow
-fprintf('\n--- Full Arena Run 1 (Vection) ---\n');
+fprintf('\n--- Multi Target Run 1 (Vection) ---\n');
 % Arena assignments (for reference - handled internally by the wrapper)
 practice_arenas = {'garden', 'beach', 'village', 'ranch', 'zoo', 'school'};
 fmri_arenas = {'hospital', 'library', 'gym', 'museum', 'airport', 'market'};
 fprintf('Note: Trigger waiting is handled by Python scripts for each trial.\n');
-fprintf('Starting Full Arena Run 1 (snake_vection + multi_arena_vection)...\n');
+fprintf('Starting Multi Target Run 1 (snake_vection + multi_target_vection)...\n');
 
-vection = true;  % Use 3D vection scripts: snake_vection.py, multi_arena_vection.py
-full_arena_run(SubID, 1, selectedScreen, scanning, com, TR, vection);
+% Ensure vection wrappers from exploration_trigger_vection are used (required if running this section alone)
+if ~exist('sessionRoot', 'var'), sessionRoot = fileparts(mfilename('fullpath')); end
+if ~exist(fullfile(sessionRoot, 'exploration_trigger_vection'), 'dir'), sessionRoot = pwd; end
+addpath(fullfile(sessionRoot, 'exploration_trigger_vection'), '-begin');
 
-%% Movie 1 - The Shining
+vection = true;  % Use 3D vection scripts: snake_vection.py, multi_target_vection.py
+multi_target_run(SubID, 1, selectedScreen, scanning, com, TR, vection);
+
+%% Movie 1 - The Shinning
 commandwindow
 fprintf('\n=== Movie 1 - The Shining ===\n');
 fprintf('Playing The Shining...\n');
@@ -241,14 +244,19 @@ catch ME
     fprintf('Error playing Movie 1: %s\n', ME.message);
 end
 
-%% Full Arena Run 2 (Vection - 3D first-person: snake_vection + multi_arena_vection)
+%% Multi Target Run 2 (Vection - 3D first-person: snake_vection + multi_target_vection)
 commandwindow
-fprintf('\n--- Full Arena Run 2 (Vection) ---\n');
+fprintf('\n--- Multi Target Run 2 (Vection) ---\n');
 fprintf('Note: Trigger waiting is handled by Python scripts for each trial.\n');
-fprintf('Starting Full Arena Run 2 (snake_vection + multi_arena_vection)...\n');
+fprintf('Starting Multi Target Run 2 (snake_vection + multi_target_vection)...\n');
 
-vection = true;  % Use 3D vection scripts: snake_vection.py, multi_arena_vection.py
-full_arena_run(SubID, 2, selectedScreen, scanning, com, TR, vection);
+% Ensure vection wrappers from exploration_trigger_vection are used (required if running this section alone)
+if ~exist('sessionRoot', 'var'), sessionRoot = fileparts(mfilename('fullpath')); end
+if ~exist(fullfile(sessionRoot, 'exploration_trigger_vection'), 'dir'), sessionRoot = pwd; end
+addpath(fullfile(sessionRoot, 'exploration_trigger_vection'), '-begin');
+
+vection = true;  % Use 3D vection scripts: snake_vection.py, multi_target_vection.py
+multi_target_run(SubID, 2, selectedScreen, scanning, com, TR, vection);
 
 %% PTSOD fMRI Run 2
 commandwindow

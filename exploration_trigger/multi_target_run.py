@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-One Target Run Wrapper Script
-Runs 6 snake trials and 6 one_target trials (intertwined) as a single process
+Multi Target Run Wrapper Script
+Runs snake and multi_target trials (intertwined) as a single process
 to eliminate timing gaps between trials.
 
-Terminology:
-- This is a SINGLE RUN containing 12 trials (6 snake + 6 one_target)
-- Each trial is numbered 1-12 within this run
-- Run number 1 = One Target Run (first run in fMRI session)
+Configuration based on run number:
+- Run 1: 4 trials (2 snake + 2 multi_target) - uses hospital, library
+- Run 2: 4 trials (2 snake + 2 multi_target) - uses gym, museum
+- Other: 12 trials (6 snake + 6 multi_target) - uses all 6 arenas
 
-Usage: python one_target_run.py --participant PARTICIPANT_ID --run RUN_NUMBER
-Note: Run number should be 1 for One Target Run.
+Usage: python multi_target_run.py --participant PARTICIPANT_ID --run RUN_NUMBER
 """
 
 import subprocess
@@ -20,7 +19,6 @@ import os
 import time
 import argparse
 from datetime import datetime
-
 
 # ---------------------------
 # STANDARDIZED FIXATION CROSS FORMAT:
@@ -35,35 +33,25 @@ from datetime import datetime
 
 # Constants
 TR = 2.01  # TR in seconds
-TOTAL_TRIALS = 12  # 6 snake + 6 one_target trials
-
-# Directory containing this script (run trial scripts from here regardless of cwd)
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-
 
 def run_and_stream(cmd):
     """
     Run a subprocess and stream its stdout/stderr to our stdout in real time.
     Returns the process return code.
     """
-    # Merge stderr into stdout so MATLAB sees a single stream
     proc = subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
         bufsize=1,
-        universal_newlines=True,
     )
 
     if proc.stdout is not None:
         for line in proc.stdout:
-            # Preserve newlines; flush so MATLAB sees it immediately
             print(line, end="", flush=True)
 
     return proc.wait()
-
-
 
 def get_unique_filename(base_filename, participant_id):
     """Generate a unique filename by adding suffix if file exists."""
@@ -95,45 +83,34 @@ def get_unique_filename(base_filename, participant_id):
             return new_filename
         counter += 1
 
-def run_trial(trial_number, trial_type, participant_id, run_number, screen_number=None, snake_trial_number=None, scanning=False, com_port='com4', tr=2.01, vection=False):
+def run_trial(trial_number, trial_type, participant_id, run_number, total_trials, arena_name=None, screen_number=None, multi_arena_number=None, total_multi_arenas=None, snake_trial_number=None, scanning=False, com_port='com4', tr=2.01, vection=False):
     """Run a single trial and return timing information."""
     
     print(f"\n{'='*60}")
-    print(f"TRIAL {trial_number}/{TOTAL_TRIALS}: {trial_type.upper()}{' (vection)' if vection else ''}")
+    print(f"TRIAL {trial_number}/{total_trials}: {trial_type.upper()}{' (vection)' if vection else ''}")
     print(f"{'='*60}")
     
     trial_start_time = time.time()
     
-    # Determine which script to run (vection = 3D first-person; all scripts in same directory)
-    if vection:
-        if trial_type == "snake":
-            script_name = "snake_vection.py"
-        elif trial_type == "one_target":
-            script_name = "one_target_vection.py"
-        else:
-            raise ValueError(f"Unknown trial type: {trial_type}")
+    # Determine which script to run
+    if trial_type == "snake":
+        script_name = os.path.join("vection_experiment", "snake_vection.py") if vection else "snake.py"
+    elif trial_type == "multi_target":
+        script_name = os.path.join("vection_experiment", "multi_target_vection.py") if vection else "multi_target.py"
     else:
-        if trial_type == "snake":
-            script_name = "snake.py"
-        elif trial_type == "one_target":
-            script_name = "one_target.py"
-        else:
-            raise ValueError(f"Unknown trial type: {trial_type}")
-
-    # Use absolute path so we always run scripts from exploration_trigger_vection
-    script_path = os.path.join(SCRIPT_DIR, script_name)
-
+        raise ValueError(f"Unknown trial type: {trial_type}")
+    
     # Construct command
     # Use unbuffered python so prints flush immediately
     cmd = [
         sys.executable,
         "-u",
-        script_path,
+        script_name,
         "fmri",
         "--participant", participant_id,
         "--run", str(run_number),
         "--trial", str(trial_number),
-        "--total-trials", str(TOTAL_TRIALS)
+        "--total-trials", str(total_trials)
     ]
     
     # Add trigger parameters if scanning is enabled
@@ -143,10 +120,23 @@ def run_trial(trial_number, trial_type, participant_id, run_number, screen_numbe
     # For snake trials, pass the snake-specific trial number
     if trial_type == "snake" and snake_trial_number is not None:
         cmd.extend(["--snake-trial", str(snake_trial_number)])
-    
+
+    # Pass explicit multi target run identifier to ensure unique logging filenames
+    cmd.extend(["--mt-run", str(run_number)])
+
     # Add screen argument if provided
     if screen_number is not None:
         cmd.extend(["--screen", str(screen_number)])
+
+    # For multi_target trials, specify the arena and visibility explicitly
+    if trial_type == "multi_target":
+        if arena_name:
+            cmd.extend(["--arena", arena_name])
+        # Ensure no-visibility behavior in fMRI
+        # Pass the multi-arena trial number and total for proper display
+        arena_num = str(multi_arena_number) if multi_arena_number is not None else "1"
+        total_arenas = str(total_multi_arenas) if total_multi_arenas is not None else "1"
+        cmd.extend(["--visibility", "none", "--arena-number", arena_num, "--arenas-per-condition", total_arenas])
     
     print(f"Command: {' '.join(cmd)}")
     print(f"Trial start time: {datetime.fromtimestamp(trial_start_time).strftime('%H:%M:%S.%f')[:-3]}")
@@ -188,42 +178,98 @@ def run_trial(trial_number, trial_type, participant_id, run_number, screen_numbe
             'error': str(e)
         }
 
-def run_one_target_run(participant_id, run_number, screen_number=None, scanning=False, com_port='com4', tr=2.01, vection=False):
-    """Run the complete One Target Run (6 snake + 6 one_target trials)."""
+def run_multi_target_run(participant_id, run_number, screen_number=None, scanning=False, com_port='com4', tr=2.01, vection=False):
+    """Run the complete Multi Target Run with run-based configuration.
+    
+    Args:
+        participant_id: Participant ID
+        run_number: Run number in fMRI session
+            - Run 2: 4 trials (2 snake + 2 multi_target) - uses arenas[0:2]
+            - Run 3: 4 trials (2 snake + 2 multi_target) - uses arenas[2:4]
+            - Other: 12 trials (6 snake + 6 multi_target) - uses all 6 arenas
+        screen_number: Optional screen number
+        scanning: Enable trigger functionality for fMRI scanning
+        com_port: Serial port for trigger (default: com4)
+        tr: TR in seconds (default: 2.01)
+    """
+    
+    # Configure based on run number
+    fmri_arenas = ["hospital", "library", "gym", "museum", "airport", "market"]
+    
+    if run_number == 1:
+        # Run 1: 4 trials (2 snake + 2 multi_target)
+        TOTAL_TRIALS = 4
+        num_multi_target = 2
+        arena_start_idx = 0
+        arena_end_idx = 2
+        trial_sequence = ["snake", "multi_target", "snake", "multi_target"]
+    elif run_number == 2:
+        # Run 2: 4 trials (2 snake + 2 multi_target)
+        TOTAL_TRIALS = 4
+        num_multi_target = 2
+        arena_start_idx = 2
+        arena_end_idx = 4
+        trial_sequence = ["snake", "multi_target", "snake", "multi_target"]
+    else:
+        # Default: 12 trials (6 snake + 6 multi_target) - full run
+        TOTAL_TRIALS = 12
+        num_multi_target = 6
+        arena_start_idx = 0
+        arena_end_idx = 6
+        trial_sequence = [
+            "snake", "multi_target", "snake", "multi_target", "snake", "multi_target",
+            "snake", "multi_target", "snake", "multi_target", "snake", "multi_target"
+        ]
+    
+    # Get arenas for this run
+    run_arenas = fmri_arenas[arena_start_idx:arena_end_idx]
     
     print(f"\n{'='*80}")
-    print(f"ONE TARGET RUN STARTING{' (VECTION - 3D first-person)' if vection else ''}")
+    print(f"MULTI TARGET RUN STARTING")
     print(f"Participant: {participant_id}")
     print(f"Run: {run_number}")
-    print(f"Total Trials: {TOTAL_TRIALS}")
+    print(f"Total Trials: {TOTAL_TRIALS} ({num_multi_target} snake + {num_multi_target} multi_target)")
+    print(f"Arenas for this run: {', '.join(run_arenas)}")
     print(f"TR: {tr} seconds")
     print(f"Scanning: {scanning}")
     print(f"Vection: {vection}")
     if scanning:
         print(f"COM Port: {com_port}")
+    if screen_number is not None:
+        print(f"Display will be on screen: {screen_number}")
     print(f"Note: Trial durations are randomized by individual scripts")
     print(f"{'='*80}")
     
     block_start_time = time.time()
     
-    # Define trial sequence (6 snake + 6 one_target, intertwined)
-    trial_sequence = [
-        "snake", "one_target", "snake", "one_target", "snake", "one_target",
-        "snake", "one_target", "snake", "one_target", "snake", "one_target"
-    ]
-    
     trial_results = []
+    next_multi_idx = 0
+    multi_target_trial_counter = 0  # Track which multi_target trial we're on (1st, 2nd, etc.)
     snake_trial_counter = 0  # Track which snake trial we're on (1st, 2nd, 3rd, etc.)
 
+    
     # Run all trials; abort entire run on any trial failure
     for trial_number, trial_type in enumerate(trial_sequence, 1):
+        arena_for_trial = None
+        current_multi_arena_number = None
         current_snake_trial_number = None
         
-        if trial_type == "snake":
+        if trial_type == "multi_target":
+            multi_target_trial_counter += 1
+            current_multi_arena_number = multi_target_trial_counter
+            
+            # Use arenas assigned to this run
+            if next_multi_idx < len(run_arenas):
+                arena_for_trial = run_arenas[next_multi_idx]
+            else:
+                # Safety fallback: wrap around if somehow exceeded
+                arena_for_trial = run_arenas[next_multi_idx % len(run_arenas)]
+            next_multi_idx += 1
+        elif trial_type == "snake":
             snake_trial_counter += 1
             current_snake_trial_number = snake_trial_counter
-        
-        result = run_trial(trial_number, trial_type, participant_id, run_number, screen_number, current_snake_trial_number, scanning, com_port, tr, vection)
+
+        result = run_trial(trial_number, trial_type, participant_id, run_number, TOTAL_TRIALS, arena_for_trial, screen_number, current_multi_arena_number, num_multi_target, current_snake_trial_number, scanning, com_port, tr, vection)
         trial_results.append(result)
 
         # Abort immediately if a trial failed (e.g., trigger timeout)
@@ -235,7 +281,7 @@ def run_one_target_run(participant_id, run_number, screen_number=None, scanning=
             print(f"{'!'*80}\n")
             # Save partial timing log for debugging (best-effort)
             try:
-                base_log_filename = f"{participant_id}_one_target_run_timing_ABORTED.csv"
+                base_log_filename = f"{participant_id}_multi_target_run_timing_ABORTED.csv"
                 log_filename = get_unique_filename(base_log_filename, participant_id)
                 save_timing_log(log_filename, block_start_time, trial_results)
                 print(f"Partial timing log saved to: {log_filename}")
@@ -244,17 +290,21 @@ def run_one_target_run(participant_id, run_number, screen_number=None, scanning=
             sys.exit(abort_code)
         
 
+        
+        # Small delay between trials to ensure clean separation
+        if trial_number < TOTAL_TRIALS:
+            time.sleep(0.1)
     
     block_end_time = time.time()
     block_duration = block_end_time - block_start_time
     
     # Print summary
     print(f"\n{'='*80}")
-    print(f"ONE TARGET RUN SUMMARY")
+    print(f"RUN SUMMARY")
     print(f"{'='*80}")
-    print(f"Run start time: {datetime.fromtimestamp(block_start_time).strftime('%H:%M:%S.%f')[:-3]}")
-    print(f"Run end time: {datetime.fromtimestamp(block_end_time).strftime('%H:%M:%S.%f')[:-3]}")
-    print(f"Total run duration: {block_duration:.3f}s ({block_duration/TR:.2f} TRs)")
+    print(f"Block start time: {datetime.fromtimestamp(block_start_time).strftime('%H:%M:%S.%f')[:-3]}")
+    print(f"Block end time: {datetime.fromtimestamp(block_end_time).strftime('%H:%M:%S.%f')[:-3]}")
+    print(f"Total block duration: {block_duration:.3f}s ({block_duration/TR:.2f} TRs)")
     
     print(f"\nTRIAL DURATIONS:")
     total_trial_time = 0
@@ -293,7 +343,7 @@ def run_one_target_run(participant_id, run_number, screen_number=None, scanning=
     print(f"Average trial duration in TRs: {(total_trial_time/TOTAL_TRIALS)/TR:.2f} TRs")
     
     # Save detailed timing log with unique filename
-    base_log_filename = f"{participant_id}_one_target_run_timing.csv"
+    base_log_filename = f"{participant_id}_multi_target_run_{run_number}_timing.csv"
     log_filename = get_unique_filename(base_log_filename, participant_id)
     save_timing_log(log_filename, block_start_time, trial_results)
     print(f"\nDetailed timing log saved to: {log_filename}")
@@ -301,7 +351,7 @@ def run_one_target_run(participant_id, run_number, screen_number=None, scanning=
     
     
     print(f"\n{'='*80}")
-    print(f"ONE TARGET RUN COMPLETE")
+    print(f"MULTI TARGET RUN COMPLETE")
     print(f"{'='*80}")
     
     # Add final 4 TRs fixation before finish screen
@@ -336,7 +386,7 @@ def run_one_target_run(participant_id, run_number, screen_number=None, scanning=
         # Hide cursor for experiment
         pygame.mouse.set_visible(False)
         
-        # Background color (same as one_target.py)
+        # Background color (same as multi_target.py)
         BACKGROUND_COLOR = (3, 3, 1)  # near-black
         WHITE = (255, 255, 255)
         
@@ -373,17 +423,15 @@ def run_one_target_run(participant_id, run_number, screen_number=None, scanning=
     except Exception as e:
         print(f"Warning: Error during fixation display: {e}")
     
-    print(f"\n=== ONE TARGET RUN FINISHED ===")
+    print(f"\n=== MULTI TARGET RUN FINISHED ===")
 
 def save_timing_log(filename, block_start_time, trial_results):
     """Save detailed timing log to CSV file."""
     
     import csv
     
-    # Ensure the directory exists
-    directory = os.path.dirname(filename)
-    if directory:  # Only create directory if it's not empty
-        os.makedirs(directory, exist_ok=True)
+    # Ensure the directory exists (get_unique_filename already handles this)
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
     
     with open(filename, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
@@ -423,13 +471,13 @@ def save_timing_log(filename, block_start_time, trial_results):
 def main():
     """Main function to parse arguments and run the block."""
     
-    parser = argparse.ArgumentParser(description='One Target Block Wrapper')
+    parser = argparse.ArgumentParser(description='Multi Target Block Wrapper')
     parser.add_argument('--participant', '-p', required=True,
                        help='Participant ID')
     parser.add_argument('--run', '-r', type=int, required=True,
                        help='Run number')
     parser.add_argument('--screen', '-s', type=int, default=None,
-                       help='Screen number to display on (optional)')
+                       help='Screen number to display on (default: None, uses fullscreen)')
     parser.add_argument('--scanning', action='store_true',
                        help='Enable trigger functionality for fMRI scanning')
     parser.add_argument('--com', type=str, default='com4',
@@ -437,7 +485,7 @@ def main():
     parser.add_argument('--tr', type=float, default=2.01,
                        help='TR in seconds (default: 2.01)')
     parser.add_argument('--vection', action='store_true',
-                       help='Use vection scripts (3D first-person: snake_vection, one_target_vection)')
+                       help='Use vection scripts (3D first-person: snake_vection, multi_target_vection)')
     
     args = parser.parse_args()
     
@@ -446,7 +494,7 @@ def main():
     os.chdir(script_dir)
     
     # Run the block
-    run_one_target_run(args.participant, args.run, args.screen, args.scanning, args.com, args.tr, args.vection)
+    run_multi_target_run(args.participant, args.run, args.screen, args.scanning, args.com, args.tr, args.vection)
 
 if __name__ == "__main__":
     main() 

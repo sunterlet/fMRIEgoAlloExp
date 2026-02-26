@@ -36,10 +36,11 @@ FADE_IN_SPEED = 5.0   # fade-in per second when movement starts
 MINIMAP_SIZE = 180
 MINIMAP_MARGIN = 12
 MINIMAP_WORLD_RADIUS = 30   # world units visible around avatar
-MINIMAP_BG_COLOR = (15, 15, 20, 200)
+MINIMAP_BG_COLOR = (3, 3, 1, 255)  # Same near-black as fullscreen task background
 MINIMAP_GRID_COLOR = (80, 80, 90, 100)
-MINIMAP_AVATAR_COLOR = (255, 200, 80)
-MINIMAP_AVATAR_HEADING_COLOR = (255, 100, 80)
+# Match exploration_trigger/snake.py avatar (Folly)
+MINIMAP_AVATAR_COLOR = (255, 67, 101)
+MINIMAP_AVATAR_HEADING_COLOR = (200, 50, 80)
 
 
 def make_floor_dots(extent: float, spacing: float) -> list:
@@ -132,7 +133,6 @@ def draw_minimap(screen: pygame.Surface, px: float, pz: float, yaw: float, dots:
     ], 1)
 
     screen.blit(layer, (mx, my))
-    pygame.draw.rect(screen, (100, 100, 120), (mx, my, map_size, map_size), 1)
 
 
 def main():

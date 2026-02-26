@@ -39,13 +39,13 @@ else
     fprintf('⚠ PTSOD Code directory not found at: %s\n', ptsodCodePath);
 end
 
-% Add exploration directory to path
-explorationPath = fullfile(pwd, 'exploration');
-if exist(explorationPath, 'dir')
-    addpath(explorationPath);
-    fprintf('✓ Exploration experiment added to path: %s\n', explorationPath);
+% Add exploration_trigger_vection directory to path (vection tasks)
+vectionPath = fullfile(pwd, 'exploration_trigger_vection');
+if exist(vectionPath, 'dir')
+    addpath(vectionPath);
+    fprintf('✓ Exploration trigger vection added to path: %s\n', vectionPath);
 else
-    fprintf('⚠ Exploration experiment directory not found at: %s\n', explorationPath);
+    fprintf('⚠ Exploration trigger vection directory not found at: %s\n', vectionPath);
 end
 
 % Add sounds directory to path
@@ -59,32 +59,28 @@ end
 
 fprintf('Path setup completed.\n');
 
-%% Snake Practice
-fprintf('\n--- Snake Practice ---\n');
-run_snake_game('practice', SubID, [], [], [], selectedScreen);
+%% Vection Practice (wrappers in exploration_trigger_vection/)
+% Snake: snake-ins.png, 90 s, minimap 30 s then auto-hide
+% One target: OT-ins.png, 3 trials, trial intro (זירה X/3), trial 1 minimap on
+% Multi target: FA-ins.png, 3 trials (garden, zoo, beach), minimap togglable with B
+
+%% Snake Vection Practice
+fprintf('\n--- Snake Vection Practice ---\n');
+run_snake_vection('practice', SubID, [], [], [], selectedScreen);
 
 %% PTSOD Practice
 fprintf('\n=== PTSOD Practice Session ===\n');
 PTSODfunc_SplitDays_fMRI_New(SubID, 1, 'practice', 2);
 
-%% One Target Practice
-fprintf('\n--- One Target Practice ---\n');
-run_one_target('practice', SubID, [], [], [], selectedScreen);
+%% One Target Vection Practice
+fprintf('\n--- One Target Vection Practice ---\n');
+run_one_target_vection('practice', SubID, [], [], [], selectedScreen);
 
-%% Multi-Arena Practice
-fprintf('\n--- Multi-Arena Practice ---\n');
-practice_conditions = {'full', 'limited', 'none'};
+%% Multi-Arena Vection Practice
+fprintf('\n--- Multi-Arena Vection Practice ---\n');
+run_multi_target_vection('practice', SubID, selectedScreen);
 
-for j = 1:length(practice_conditions)
-    visibility = practice_conditions{j};
-    fprintf('\n--- Practice Condition %d: %s visibility ---\n', j, visibility);
-    % Run only 1 arena per condition (handled internally by run_multi_target)
-    run_multi_target('practice', SubID, j, j, length(practice_conditions), visibility, selectedScreen);
-end
-
-% Thank you screen
 fprintf('\n--- Practice Complete ---\n');
-run_multi_target('practice', SubID, 1, 1, 1, 'thank_you', selectedScreen);
 
 fprintf('\n=== ALL PRACTICE SESSIONS COMPLETED ===\n');
 

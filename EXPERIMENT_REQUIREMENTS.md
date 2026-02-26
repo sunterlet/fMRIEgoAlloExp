@@ -39,7 +39,7 @@ Everything below is required for the in-scanner protocol on the **PC**.
 | `run_snake_game('shimming', ...)` | Wrapper lives in **exploration_trigger**; inside it, `exploration_dir = fullfile(pwd, 'exploration')` and `cd(exploration_dir)` (see **exploration_trigger/run_snake_game.m** around lines 26–35), then runs the Python snake from there. | Scanner needs both **exploration_trigger** (for the .m wrapper) and **exploration** (the folder that gets cd’d into). |
 | `PTSODfunc_SplitRuns_fMRI_New(...)` | `PTSOD/Code` | PTSOD task, run 1 and run 2. |
 | `one_target_run(...)` | `exploration_trigger/one_target_run.m` | Calls Python in **exploration_trigger**. |
-| `full_arena_run(...)` | `exploration_trigger/full_arena_run.m` | Calls Python in **exploration_trigger**. |
+| `multi_target_run(...)` | `exploration_trigger/multi_target_run.m` | Calls Python in **exploration_trigger**. |
 | `PlayMovie_Scaled(SubID, 'TheShining.mp4', ...)` | Root: `PlayMovie_Scaled.m` | Needs movies folder. |
 | `PlayMovie_Scaled(SubID, 'MissionImpossible.mp4', ...)` | Same | |
 | `combine_session_data(SubID)` | Root: `combine_session_data.m` | Runs after session. |
@@ -58,7 +58,7 @@ Everything below is required for the in-scanner protocol on the **PC**.
 
 | Path | Purpose |
 |------|--------|
-| **exploration_trigger/** | MATLAB wrappers (run_snake_game.m, one_target_run.m, full_arena_run.m) and Python scripts for one_target and full_arena. |
+| **exploration_trigger/** | MATLAB wrappers (run_snake_game.m, one_target_run.m, multi_target_run.m) and Python scripts for one_target and multi_target. |
 | **exploration/** | Used by run_snake_game (it does `cd` into `exploration` to run the snake Python). So scanner needs this folder too. |
 | **PTSOD/Code** | PTSOD experiment code. |
 | **PTSOD/Instructions_HE** | Instruction images (e.g. instructions_practice_fmri1/*.png). |
@@ -104,11 +104,11 @@ Practice runs on the **behavioral PC** in the behavioral experiment rooms (not o
 - `run_snake_game('practice', ...)` — from **exploration** (Mac has no exploration_trigger).
 - `PTSODfunc_SplitDays_fMRI_New(...)` or `PTSODfunc_SplitRuns_fMRI_New(...)` (depending on which practice_session.m you actually use).
 - `run_one_target('practice', ...)` — from exploration.
-- `run_multi_arena('practice', ...)` — from exploration.
+- `run_multi_target('practice', ...)` — from exploration.
 
 So on **Mac** you need:
 
-- **exploration/** (with run_snake_game, run_one_target, run_multi_arena and their Python scripts)
+- **exploration/** (with run_snake_game, run_one_target, run_multi_target and their Python scripts)
 - **PTSOD/Code**, **PTSOD/Instructions_HE**, **PTSOD/Stimuli**
 - **sounds/**
 - **Results/** (practice writes here)
@@ -127,7 +127,7 @@ Sun/  (or same structure on PC)
 ├── combine_session_data.m
 ├── PlayMovie_Scaled.m
 ├── fixation.pptx
-├── exploration_trigger/     # MATLAB wrappers + Python for one_target, full_arena
+├── exploration_trigger/     # MATLAB wrappers + Python for one_target, multi_target
 ├── exploration/             # Used by run_snake_game for snake
 ├── PTSOD/
 │   ├── Code/

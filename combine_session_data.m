@@ -28,14 +28,14 @@ fprintf('Saving combined files to: %s\n', output_dir);
 % Define run types and their patterns
 run_types = {
     'OT', 'OT', 'One Target Run';
-    'FA', 'FA*', 'Full Arena Run'
+    'MT', 'MT*', 'Multi Target Run'
 };
 
 % Define trial types for discrete data grouping
 trial_types = {
     'ot', 'ot', 'One Target trials';
     'snake', 'snake', 'Snake trials';
-    'fa', 'fa', 'Full Arena trials'
+    'mt', 'mt', 'Multi Target trials'
 };
 
 % Process regular run types
@@ -48,14 +48,14 @@ for run_idx = 1:size(run_types, 1)
     
     % Use more flexible pattern matching to catch all files
     % For OT: match {participant_id}_OT_*continuous*.csv
-    % For FA: match {participant_id}_FA*_*continuous*.csv (handles FA, FA1, FA2, etc.)
+    % For MT: match {participant_id}_MT*_*continuous*.csv (handles MT, MT1, MT2, etc.)
     if strcmp(run_code, 'OT')
         continuous_pattern = sprintf('%s_OT_*continuous*.csv', participant_id);
         discrete_pattern = sprintf('%s_OT_*discrete*.csv', participant_id);
-    else % FA
-        % Match both FA and FA{number} patterns
-        continuous_pattern = sprintf('%s_FA*continuous*.csv', participant_id);
-        discrete_pattern = sprintf('%s_FA*discrete*.csv', participant_id);
+    else % MT
+        % Match both MT and MT{number} patterns
+        continuous_pattern = sprintf('%s_MT*continuous*.csv', participant_id);
+        discrete_pattern = sprintf('%s_MT*discrete*.csv', participant_id);
     end
     
     continuous_files = dir(fullfile(subid_dir, continuous_pattern));
@@ -485,27 +485,27 @@ end
 
 fprintf('\n=== DATA COMBINATION COMPLETE ===\n');
 fprintf('All trial data has been combined into single files per run.\n');
-fprintf('Continuous logs from all trial types (ot, snake, fa) have been combined.\n');
+fprintf('Continuous logs from all trial types (ot, snake, mt) have been combined.\n');
 fprintf('Raw individual trial files remain in their original location.\n');
 fprintf('\nNote: Combined continuous files use unified header structure:\n');
 fprintf('  RealTime, trial_time, trial, trial_type, RoundName, condition_type, visibility,\n');
 fprintf('  phase, event, x, y, rotation_angle, score, target_x, target_y\n');
-fprintf('  (trial_type: OT, FA, or SNAKE)\n');
+fprintf('  (trial_type: OT, MT, or SNAKE)\n');
 
 end
 
 function run_identifier = extract_run_identifier(file_name, participant_id, run_code)
-% Helper to extract run identifier (e.g., FA1, OT) from filename.
+% Helper to extract run identifier (e.g., MT1, OT) from filename.
 % Handles multiple patterns:
 %   - {participant_id}_OT_ot{trial}_continuous.csv -> OT
 %   - {participant_id}_OT_snake{trial}_continuous.csv -> OT
-%   - {participant_id}_FA{number}_fa{trial}_continuous.csv -> FA{number}
-%   - {participant_id}_FA{number}_snake{trial}_continuous.csv -> FA{number}
-%   - {participant_id}_FA_fa{trial}_continuous.csv -> FA
-%   - {participant_id}_FA_snake{trial}_continuous.csv -> FA
+%   - {participant_id}_MT{number}_mt{trial}_continuous.csv -> MT{number}
+%   - {participant_id}_MT{number}_snake{trial}_continuous.csv -> MT{number}
+%   - {participant_id}_MT_mt{trial}_continuous.csv -> MT
+%   - {participant_id}_MT_snake{trial}_continuous.csv -> MT
 % Falls back to the base run_code if no numeric suffix is present.
 
-% Pattern 1: Match {participant_id}_{run_code}{number}_... (e.g., FA1, FA2)
+% Pattern 1: Match {participant_id}_{run_code}{number}_... (e.g., MT1, MT2)
 pattern1 = sprintf('^%s_(%s\\d+)_', participant_id, run_code);
 tokens1 = regexp(file_name, pattern1, 'tokens', 'once');
 
@@ -514,7 +514,7 @@ if ~isempty(tokens1) && ~isempty(tokens1{1})
     return;
 end
 
-% Pattern 2: Match {participant_id}_{run_code}_... (e.g., OT, FA without number)
+% Pattern 2: Match {participant_id}_{run_code}_... (e.g., OT, MT without number)
 pattern2 = sprintf('^%s_(%s)_', participant_id, run_code);
 tokens2 = regexp(file_name, pattern2, 'tokens', 'once');
 
@@ -528,14 +528,14 @@ run_identifier = run_code;
 end
 
 function trial_type = extract_trial_type(file_name)
-% Helper to extract trial type (OT, FA, or SNAKE) from filename.
+% Helper to extract trial type (OT, MT, or SNAKE) from filename.
 % Patterns:
 %   - {participant_id}_OT_ot{trial}_continuous.csv -> OT
 %   - {participant_id}_OT_snake{trial}_continuous.csv -> SNAKE
-%   - {participant_id}_FA{number}_fa{trial}_continuous.csv -> FA
-%   - {participant_id}_FA{number}_snake{trial}_continuous.csv -> SNAKE
-%   - {participant_id}_FA_fa{trial}_continuous.csv -> FA
-%   - {participant_id}_FA_snake{trial}_continuous.csv -> SNAKE
+%   - {participant_id}_MT{number}_mt{trial}_continuous.csv -> MT
+%   - {participant_id}_MT{number}_snake{trial}_continuous.csv -> SNAKE
+%   - {participant_id}_MT_mt{trial}_continuous.csv -> MT
+%   - {participant_id}_MT_snake{trial}_continuous.csv -> SNAKE
 
 % Check for snake trials first (most specific)
 if contains(file_name, '_snake')
@@ -549,17 +549,17 @@ if contains(file_name, '_ot') || contains(file_name, '_OT_ot')
     return;
 end
 
-% Check for FA trials (full arena)
-if contains(file_name, '_fa') || contains(file_name, '_FA_fa')
-    trial_type = 'FA';
+% Check for MT trials (multi target)
+if contains(file_name, '_mt') || contains(file_name, '_MT_mt')
+    trial_type = 'MT';
     return;
 end
 
 % Fallback: try to infer from run context
 if contains(file_name, '_OT_')
     trial_type = 'OT';
-elseif contains(file_name, '_FA')
-    trial_type = 'FA';
+elseif contains(file_name, '_MT')
+    trial_type = 'MT';
 else
     % Default fallback
     trial_type = 'UNKNOWN';

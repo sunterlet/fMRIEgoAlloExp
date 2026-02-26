@@ -8,7 +8,7 @@ This experiment consists of multiple components:
 - **Shimming**: Endless snake game during scan shimming
 - **PTSOD Tasks**: Two runs of the PTSOD (Pointing to Self-Other Direction) task
 - **One Target Run**: 6 snake trials + 6 one-target arena trials
-- **Full Arena Run**: 6 snake trials + 6 multi-arena trials
+- **Multi Target Run**: 2 snake trials + 2 multi-target trials per run (2 total runs)
 
 ## Organizing and syncing (Mac ↔ PC)
 
@@ -96,11 +96,11 @@ fMRI/
 ├── exploration/               # Main experiment code
 │   ├── run_snake_game.m       # Snake game wrapper
 │   ├── one_target_run.m       # One target experiment
-│   ├── full_arena_run.m       # Full arena experiment
+│   ├── multi_target_run.m     # Multi target experiment
 │   ├── trigger_manager.m      # Trigger management
 │   ├── snake.py              # Snake game implementation
 │   ├── one_target.py         # One target task
-│   ├── multi_arena.py        # Multi-arena task
+│   ├── multi_target.py       # Multi-target task
 │   ├── sounds/               # Audio files
 │   ├── Instructions-he/      # Hebrew instruction images
 │   └── arena_visualizations/ # Arena images
@@ -148,8 +148,8 @@ SubID = 'test';     % Change to actual participant ID
 - 6 snake trials + 6 one-target arena trials
 - Intertwined design to eliminate timing gaps
 
-### 4. Full Arena Run Design  
-- 6 snake trials + 6 multi-arena trials
+### 4. Multi Target Run Design  
+- 2 snake trials + 2 multi-target trials per run (2 total runs)
 - Uses 6 different fMRI arenas
 
 ### 5. PTSOD fMRI Run 2
@@ -171,17 +171,17 @@ Results/
     ├── [SubID]_OT_ot_discrete.csv
     ├── [SubID]_OT_snake_continuous.csv
     ├── [SubID]_OT_snake_discrete.csv
-    ├── [SubID]_FA_fa_continuous.csv
-    ├── [SubID]_FA_fa_discrete.csv
-    ├── [SubID]_FA_snake_continuous.csv
-    └── [SubID]_FA_snake_discrete.csv
+    ├── [SubID]_MT_mt_continuous.csv
+    ├── [SubID]_MT_mt_discrete.csv
+    ├── [SubID]_MT_snake_continuous.csv
+    └── [SubID]_MT_snake_discrete.csv
 ```
 
 Where:
 - `OT` = One Target Run
-- `FA` = Full Arena Run
+- `MT` = Multi Target Run
 - `ot` = One Target trials
-- `fa` = Full Arena trials
+- `mt` = Multi Target trials
 - `snake` = Snake game trials
 
 ### Data Combination
@@ -235,7 +235,7 @@ scanning = false;  % Disables trigger functionality
 
 - Snake game: Edit `exploration/snake.py`
 - One target: Edit `exploration/one_target.py`  
-- Multi-arena: Edit `exploration/multi_arena.py`
+- Multi-target: Edit `exploration/multi_target.py`
 
 ## Requirements
 

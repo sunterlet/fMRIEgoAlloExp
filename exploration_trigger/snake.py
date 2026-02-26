@@ -74,8 +74,8 @@ parser.add_argument('--total-trials', '-tt', type=int, default=1,
                    help='Total number of trials in sequence (default: 1)')
 parser.add_argument('--screen', '-s', type=int, default=None,
                    help='Screen number to display on (default: None, uses fullscreen)')
-parser.add_argument('--fa-run', '-far', type=int, default=None,
-                    help='Full arena run identifier for logging (default: None)')
+parser.add_argument('--mt-run', '-mtr', type=int, default=None,
+                    help='Multi target run identifier for logging (default: None)')
 parser.add_argument('--snake-trial', '-st', type=int, default=None,
                     help='Snake-specific trial number (for sequential numbering, default: None, will be calculated)')
 parser.add_argument('--scanning', action='store_true',
@@ -92,7 +92,7 @@ run_number = args.run
 current_trial = args.trial
 total_trials = args.total_trials
 screen_number = args.screen
-fa_run_number = args.fa_run
+mt_run_number = args.mt_run
 scanning = args.scanning
 com_port = args.com
 TR = args.tr  # TR from command line or default 2.01
@@ -112,13 +112,13 @@ else:
 
 if MODE == 'fmri':
     # Determine run context based on run_number
-    # Run 1 = One Target Run, Run 2 = Full Arena Run
-    if fa_run_number is not None:
-        run_context = f"FA{fa_run_number}"
+    # Run 1 = One Target Run, Run 2 = Multi Target Run
+    if mt_run_number is not None:
+        run_context = f"MT{mt_run_number}"
     elif run_number == 1:
         run_context = "OT"
     elif run_number == 2:
-        run_context = "FA"
+        run_context = "MT"
     else:
         # Fallback for any other run numbers
         run_context = f"run{run_number}"

@@ -1,6 +1,0 @@
-# For run_vection_pygame.py (recommended — no conflict with PsychoPy):
-pygame>=2.0.0
-
-# For run_vection.py (pyglet version):
-# pyglet>=2.0.0
-# PyOpenGL>=3.1.0
